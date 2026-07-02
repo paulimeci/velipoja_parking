@@ -1,0 +1,112 @@
+/* Restaurant Area Style
+============================================*/
+.welcome-restaurant {
+    padding: 60px 30px;
+    padding-bottom: 57px;
+    h2 {
+        color: $white;
+        font-size: 32px;
+        font-weight: 700;
+        line-height: 125%;
+        letter-spacing: -0.5px;
+        max-width: 326px;
+        margin-bottom: 30px;
+    }
+    .dish-wrap {
+        position: absolute;
+        top: 50%;
+        right: 38px;
+        transform: translateY(-50%);
+        .dish-img {
+            animation: rotateAndReverse 4s linear infinite;
+        }
+        .dish-shape {
+            position: absolute;
+            top: 0;
+            right: 30px;
+        }
+        .dish-shape1 {
+            position: absolute;
+            top: -10px;
+            left: -15px;
+        }
+        .dish-shape2 {
+            position: absolute;
+            bottom: -10px;
+            right: -15px;
+        }
+    }
+}
+@keyframes rotateAndReverse {
+    0% { transform: rotate(0deg); }
+    50% { transform: rotate(180deg); }
+    100% { transform: rotate(0deg); }
+}
+.revenue-card {
+    padding: 22px 24px;
+    h2 {
+        font-size: 32px;
+        font-weight: 700;
+        line-height: 125%;
+        letter-spacing: -0.5px;
+        margin-bottom: 0;
+    }
+}
+
+
+/* Max width 767px */
+@media only screen and (max-width : 767px) {
+
+    .welcome-restaurant {
+        padding: 20px;
+        h2 {
+            font-size: 20px;
+            max-width: 200px;
+            margin-bottom: 15px;
+        }
+    }
+
+}
+
+@media only screen and (max-width : 520px) {
+    .dish-wrap {
+        display: none;
+    }
+}
+
+/* Min width 768px to Max width 992px */
+@media only screen and (min-width : 768px) and (max-width : 991px) {
+
+}
+
+/* Min width 992px to Max width 1199px */
+@media only screen and (min-width : 992px) and (max-width : 1199px)  {
+
+}
+
+/* Min width 1200px to Max width 1399px */
+@media only screen and (min-width : 1200px) and (max-width : 1399px) {
+
+}
+
+/* Min width 1400px to Max width 1799px */
+@media only screen and (min-width : 1400px) and (max-width : 1799px) {
+
+}
+
+@media only screen and (max-width : 1199px) {
+
+}
+
+[data-theme=dark] {
+    .welcome-restaurant {
+        background-color: $rating-color !important;
+    }
+}
+
+.rtl {
+    .welcome-restaurant .dish-wrap {
+        right: auto;
+        left: 38px;
+    }
+}
