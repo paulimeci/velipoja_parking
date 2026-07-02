@@ -26,6 +26,7 @@
                                 <button type="button" wire:click="$set('showOretModal', false)" class="btn-close"></button>
                             </div>
                             <div class="modal-body pt-3">
+
                                 <div class="mb-3">
                                     <label class="form-label fw-medium">Nga (Kohëzgjatja në Orë) <span class="text-danger">*</span></label>
                                     <input wire:model="ora_fillestare" type="number" step="0.01" min="0"
@@ -44,14 +45,24 @@
                                     @error('ora_limit') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                 </div>
 
-                                <div class="mb-1">
-                                    <label class="form-label fw-medium">Çmimi për kët’ fashë (Lekë) <span class="text-danger">*</span></label>
-                                    <input wire:model="sasia_leke" type="number" step="0.01"
-                                           {{ $isViewOnly ? 'disabled' : '' }}
-                                           class="form-control rounded-2 @error('sasia_leke') is-invalid @enderror"
-                                           placeholder="p.sh. 200 ALL">
-                                    @error('sasia_leke') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                </div>
+                                <hr class="text-muted my-3">
+                                <h6 class="fw-semibold mb-3 text-secondary">Çmimet sipas Monedhave</h6>
+
+                                @foreach($monedhat as $monedha)
+                                    <div class="mb-3">
+                                        <label class="form-label fw-medium">Vlera në {{ $monedha->emri }} ({{ $monedha->kodi }}) <span class="text-danger">*</span></label>
+                                        <div class="input-group">
+                                            <input wire:model="cmimet_monedhave.{{ $monedha->id }}" type="number" step="0.01" min="0"
+                                                   {{ $isViewOnly ? 'disabled' : '' }}
+                                                   class="form-control @error('cmimet_monedhave.' . $monedha->id) is-invalid @enderror"
+                                                   placeholder="Vendos vlerën për {{ $monedha->kodi }}">
+                                            <span class="input-group-text bg-light fw-semibold rounded-end-2">{{ $monedha->kodi }}</span>
+                                        </div>
+                                        @error('cmimet_monedhave.' . $monedha->id)
+                                        <div class="text-danger fs-13 mt-1">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                @endforeach
 
                             </div>
                             <div class="modal-footer border-0 pt-2">
@@ -77,11 +88,13 @@
                             <th scope="col">ID</th>
                             <th scope="col">Nga (Orë)</th>
                             <th scope="col">Deri Në (Orë)</th>
-                            <th scope="col">Çmimi (Lekë)</th>
+                            <th scope="col">Çmimi Kryesor (ALL)</th>
+                            <th scope="col">Çmime te tjera</th>
                             <th scope="col">Veprime</th>
                         </tr>
                         </thead>
                         <tbody>
+
                         @forelse($konfigurimet as $konfig)
                             <tr wire:key="konfig-{{ $konfig->id }}">
                                 <td>#{{ $konfig->id }}</td>
@@ -90,9 +103,26 @@
                                     {{ $konfig->ne >= 999 ? '8+' : $konfig->ne . ' orë' }}
                                 </td>
                                 <td>
-                                    <span class="badge bg-success bg-opacity-10 text-success p-2 fs-12 fw-normal">
-                                        {{ number_format($konfig->shifra, 0, ',', '.') }} ALL
-                                    </span>
+                                    <div class="mb-1">
+                            <span class="badge bg-success bg-opacity-10 text-success p-2 fs-12 fw-semibold">
+                                {{ number_format($konfig->cmimet['ALL'] ?? 0, 0, ',', '.') }} ALL
+                            </span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="d-flex gap-2 mt-1">
+                                        @if(isset($konfig->cmimet['EUR']))
+                                            <small class="text-muted fs-11 bg-light px-2 py-0.5 rounded border">
+                                                <span class="fw-medium text-primary">EUR:</span> €{{ number_format($konfig->cmimet['EUR'], 2) }}
+                                            </small>
+                                        @endif
+
+                                        @if(isset($konfig->cmimet['USD']))
+                                            <small class="text-muted fs-11 bg-light px-2 py-0.5 rounded border">
+                                                <span class="fw-medium text-warning">USD:</span> ${{ number_format($konfig->cmimet['USD'], 2) }}
+                                            </small>
+                                        @endif
+                                    </div>
                                 </td>
                                 <td>
                                     <div class="d-flex align-items-center gap-1">

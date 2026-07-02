@@ -11,10 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('adm_oret_cmimi', function (Blueprint $table) {
+        Schema::create('adm_operacionet', function (Blueprint $table) {
             $table->id();
-            $table->double('nga');
-            $table->double('ne');
+            $table->string('targa', 20);
+            $table->dateTime('nisja');
+            $table->dateTime('ikja')->nullable();
+            $table->enum('status', ['prezent', 'larguar'])->default('prezent');
             $table->timestamps();
         });
     }
@@ -24,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('adm_oret_cmimi');
+        Schema::dropIfExists('adm_operacionet');
     }
 };

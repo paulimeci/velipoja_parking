@@ -11,10 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('adm_oret_cmimi', function (Blueprint $table) {
+        Schema::create('adm_cmimi_sipas_monedhes', function (Blueprint $table) {
             $table->id();
-            $table->double('nga');
-            $table->double('ne');
+            $table->foreignId('interval_id')->constrained('adm_oret_cmimi')->onDelete('cascade');
+            $table->foreignId('monedha_id')->constrained('adm_monedhat')->onDelete('cascade');
+            $table->decimal('vlera', 8, 2);
             $table->timestamps();
         });
     }
@@ -24,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('adm_oret_cmimi');
+        Schema::dropIfExists('adm_cmimi_sipas_monedhes');
     }
 };
