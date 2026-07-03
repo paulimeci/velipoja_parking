@@ -22,8 +22,8 @@
                             <form wire:submit.prevent="ruajOperacionin">
                                 <div class="row align-items-end">
 
-                                    {{-- INPUT 1: TARGA E MAKINËS --}}
-                                    <div class="col-lg-4">
+                                    {{-- INPUT 1: TARGA E MAKINËS (Gjithmonë e dukshme) --}}
+                                    <div class="col-lg-6">
                                         <div class="form-group mb-4">
                                             <label class="label text-secondary fw-medium mb-2">{{ __('Targa e Makinës') }} <span class="text-danger">*</span></label>
                                             <input type="text" wire:model="targa"
@@ -33,40 +33,8 @@
                                         </div>
                                     </div>
 
-                                    {{-- SELECT 2: KATEGORIA E SHËRBIMIT (24h, ore, dite_nate) --}}
-                                    <div class="col-lg-4">
-                                        <div class="form-group mb-4">
-                                            <label class="label text-secondary fw-medium mb-2">{{ __('Zgjidh Shërbimin') }} <span class="text-danger">*</span></label>
-                                            <div class="form-group position-relative">
-                                                <select wire:model="id_kategoria" class="form-select form-control h-60 rounded-3 @error('id_kategoria') is-invalid @enderror">
-                                                    <option value="" class="text-dark">-- {{ __('Zgjidh Shërbimin') }} --</option>
-                                                    @foreach($kategorite as $kategoria)
-                                                        <option value="{{ $kategoria->id }}" class="text-dark">{{ $kategoria->kategoria }}</option>
-                                                    @endforeach
-                                                </select>
-                                                @error('id_kategoria') <div class="invalid-feedback mt-1">{{ $message }}</div> @enderror
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {{-- SELECT 3: PERZGJEDHJA E MONEDHËS (Default: LEK/ALL) --}}
-                                    <div class="col-lg-4">
-                                        <div class="form-group mb-4">
-                                            <label class="label text-secondary fw-medium mb-2">{{ __('Monedha e Pagesës') }} <span class="text-danger">*</span></label>
-                                            <div class="form-group position-relative">
-                                                <select wire:model="id_monedha" class="form-select form-control h-60 rounded-3 @error('id_monedha') is-invalid @enderror">
-                                                    <option value="" class="text-dark">-- {{ __('Zgjidh Monedhën') }} --</option>
-                                                    @foreach($monedhat as $monedha)
-                                                        <option value="{{ $monedha->id }}" class="text-dark">{{ $monedha->emri }} ({{ $monedha->kodi }})</option>
-                                                    @endforeach
-                                                </select>
-                                                @error('id_monedha') <div class="invalid-feedback mt-1">{{ $message }}</div> @enderror
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {{-- SHTUESI 1: CHECKBOX "PAGUAR" --}}
-                                    <div class="col-lg-4">
+                                    {{-- CHECKBOX "PAGUAR" (Gjithmonë i dukshëm) --}}
+                                    <div class="col-lg-6">
                                         <div class="form-group mb-4 d-flex align-items-center h-60">
                                             <div class="form-check form-switch custom-switch">
                                                 <input class="form-check-input" type="checkbox" role="switch" id="paguarSwitch" wire:model.live="eshte_paguar" style="width: 2.5em; height: 1.25em; cursor: pointer;">
@@ -77,22 +45,53 @@
                                         </div>
                                     </div>
 
-                                    {{-- SHTUESI 2: FUSHA DINAMIKE E SHIFRËS --}}
-                                    <div class="col-lg-4">
-                                        @if($eshte_paguar)
-                                            <div class="form-group mb-4 transition-element">
+                                    {{-- FUSHAT DINAMIKE (Shfaqen vetëm kur çekon switch-in) --}}
+                                    @if($eshte_paguar)
+                                        {{-- SELECT 2: KATEGORIA E SHËRBIMIT --}}
+                                        <div class="col-lg-4 transition-element">
+                                            <div class="form-group mb-4">
+                                                <label class="label text-secondary fw-medium mb-2">{{ __('Zgjidh Shërbimin') }} <span class="text-danger">*</span></label>
+                                                <div class="form-group position-relative">
+                                                    <select wire:model="id_kategoria" class="form-select form-control h-60 rounded-3 @error('id_kategoria') is-invalid @enderror">
+                                                        <option value="" class="text-dark">-- {{ __('Zgjidh Shërbimin') }} --</option>
+                                                        @foreach($kategorite as $kategoria)
+                                                            <option value="{{ $kategoria->id }}" class="text-dark">{{ $kategoria->kategoria }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                    @error('id_kategoria') <div class="invalid-feedback mt-1">{{ $message }}</div> @enderror
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {{-- SELECT 3: PERZGJEDHJA E MONEDHËS --}}
+                                        <div class="col-lg-4 transition-element">
+                                            <div class="form-group mb-4">
+                                                <label class="label text-secondary fw-medium mb-2">{{ __('Monedha e Pagesës') }} <span class="text-danger">*</span></label>
+                                                <div class="form-group position-relative">
+                                                    <select wire:model="id_monedha" class="form-select form-control h-60 rounded-3 @error('id_monedha') is-invalid @enderror">
+                                                        <option value="" class="text-dark">-- {{ __('Zgjidh Monedhën') }} --</option>
+                                                        @foreach($monedhat as $monedha)
+                                                            <option value="{{ $monedha->id }}" class="text-dark">{{ $monedha->emri }} ({{ $monedha->kodi }})</option>
+                                                        @endforeach
+                                                    </select>
+                                                    @error('id_monedha') <div class="invalid-feedback mt-1">{{ $message }}</div> @enderror
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {{-- INPUT 4: SHIFRPA E PAGUAR --}}
+                                        <div class="col-lg-4 transition-element">
+                                            <div class="form-group mb-4">
                                                 <label class="label text-secondary fw-medium mb-2">{{ __('Shifra e Paguar (Vlera)') }} <span class="text-danger">*</span></label>
                                                 <input type="number" step="0.01" min="0" wire:model="shuma_paguar"
                                                        class="form-control h-60 rounded-3 @error('shuma_paguar') is-invalid @enderror"
                                                        placeholder="{{ __('Vendos shifrën...') }}">
                                                 @error('shuma_paguar') <div class="invalid-feedback mt-1">{{ $message }}</div> @enderror
                                             </div>
-                                        @endif
-                                    </div>
+                                        </div>
+                                    @endif
 
-                                    <div class="col-lg-4"></div>
-
-                                    {{-- BUTONI PËR KRYERJEN E OPERACIONIT (I zvogëluar siç kërkove) --}}
+                                    {{-- BUTONI --}}
                                     <div class="col-12 text-end mt-2">
                                         <button type="submit" class="btn btn-primary py-2 px-4 fs-14 fw-semibold rounded-3 shadow-sm">
                                             <span wire:loading wire:target="ruajOperacionin" class="spinner-border spinner-border-sm me-2"></span>
@@ -115,7 +114,6 @@
     <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3 mt-2">
         <h5 class="fs-16 fw-semibold mb-0">{{ __('Mjetet Prezent në Parking') }}</h5>
 
-        {{-- Kjo është fusha e kërkimit (Searchbox) në krah të djathtë --}}
         <div class="position-relative" style="min-width: 260px;">
             <input type="text" wire:model.live="kerkoTarge"
                    class="form-control bg-white border border-secondary border-opacity-25 rounded-3 py-2 ps-4 pe-5 fs-13"
@@ -162,9 +160,12 @@
                             </div>
                         </div>
 
-                        {{-- SEKSIONI QENDROR: TARGA --}}
+                        {{-- SEKSIONI QENDROR: TARGA (Kur klikohet thërret Backend dhe hap modalin) --}}
                         <div class="text-center py-2.5 my-1">
-                            <div class="d-inline-flex align-items-center justify-content-center bg-white border border-dark border-2 rounded-2 w-100 shadow-sm" style="height: 40px;">
+                            <div class="d-inline-flex align-items-center justify-content-center bg-white border border-dark border-2 rounded-2 w-100 shadow-sm"
+                                 style="height: 40px; cursor: pointer;"
+                                 wire:click="shfaqModalPagesen({{ $mjeti->id }})"
+                                 data-bs-toggle="modal" data-bs-target="#modalPagesaMjetit">
                                 <span class="fs-18 fw-bolder text-dark font-monospace text-uppercase" style="letter-spacing: 0.8px;">
                                     {{ $mjeti->targa }}
                                 </span>
@@ -184,9 +185,165 @@
             </div>
         @empty
             <div class="col-12">
-                <p class="text-secondary text-center py-4 bg-white rounded-3 border">{{ __('Nuk u gjet asnjë mjet prezent me këtë targë.') }}</p>
+                <p class="text-secondary text-center py-4 bg-white rounded-3 border">{{ __('Nuk u gjet asnjë mjet prezent.') }}</p>
             </div>
         @endforelse
-
     </div>
+
+    {{-- ═══════════════════════════════════════
+          SEKSIONI 3: MODAL POP-UP (PAGESA / MBYLLJA)
+         ════════════════════════════════════════ --}}
+    @if($klickedTarga)
+
+        <div wire:ignore.self
+             class="modal fade show d-block"
+             id="modalPagesaMjetit"
+             tabindex="-1"
+             aria-labelledby="modalPagesaMjetitLabel"
+             aria-modal="true"
+             role="dialog"
+             style="background: rgba(0,0,0,0.5);">
+
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 bg-white shadow rounded-3">
+
+                    {{-- KOKA E MODALIT --}}
+                    <div class="modal-header border-bottom p-4">
+                        <h5 class="modal-title fs-16 fw-semibold" id="modalPagesaMjetitLabel">
+                            <i class="ri-money-dollar-circle-line align-middle me-1 text-primary fs-20"></i>
+                            {{ __('Procedo me Mbylljen / Pagesën') }}
+                        </h5>
+
+                        <button type="button"
+                                class="btn-close shadow-none"
+                                wire:click="$set('klickedTarga', false)">
+                        </button>
+                    </div>
+
+                    {{-- TRUPI --}}
+                    <div class="modal-body p-4">
+
+                        @if($mjetiZgjedhur)
+
+                            <div class="text-center mb-4">
+                                <div class="d-inline-flex align-items-center justify-content-center bg-light border border-dark border-2 rounded-2 px-4 py-1"
+                                     style="min-width: 160px; height: 45px;">
+                                <span class="fs-20 fw-black text-dark font-monospace text-uppercase" style="letter-spacing: 0.8px;">
+                                    {{ $mjetiZgjedhur->targa }}
+                                </span>
+                                </div>
+                            </div>
+
+                            <table class="table table-sm table-borderless fs-13 mb-3">
+                                <tbody>
+
+                                <tr class="border-bottom border-light">
+                                    <td class="text-secondary py-2 fw-medium">{{ __('Koha e Hyrjes') }}:</td>
+                                    <td class="text-dark py-2 fw-semibold text-end">
+                                        {{ \Carbon\Carbon::parse($mjetiZgjedhur->nisja)->format('d/m/Y - H:i') }}
+                                    </td>
+                                </tr>
+
+                                <tr class="border-bottom border-light">
+                                    <td class="text-secondary py-2 fw-medium">{{ __('Koha Aktuale') }}:</td>
+                                    <td class="text-primary py-2 fw-semibold text-end">
+                                        {{ \Carbon\Carbon::now()->format('d/m/Y - H:i') }}
+                                    </td>
+                                </tr>
+
+                                <tr class="border-bottom border-light bg-light bg-opacity-50">
+                                    <td class="text-secondary py-2 fw-bold text-danger">{{ __('Koha e Qëndrimit') }}:</td>
+                                    <td class="text-danger py-2 fw-bold text-end fs-14">
+                                        <i class="ri-time-line me-1"></i> {{ $koha_qendrimit }}
+                                    </td>
+                                </tr>
+
+                                </tbody>
+                            </table>
+
+                            <div class="row g-3 mt-2">
+                                {{-- DROPDOWN 1: SHËRBIMI --}}
+                                <div class="col-6">
+                                    <div class="form-group">
+                                        <label class="label text-secondary fw-medium mb-1 fs-12">{{ __('Ndrysho Shërbimin') }}</label>
+                                        <select wire:model="modal_id_kategoria" class="form-select fs-13 py-2 rounded-3">
+                                            @foreach($kategorite as $kategoria)
+                                                <option value="{{ $kategoria->id }}">{{ $kategoria->kategoria }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {{-- DROPDOWN 2: MONEDHA --}}
+                                <div class="col-6">
+                                    <div class="form-group">
+                                        <label class="label text-secondary fw-medium mb-1 fs-12">{{ __('Monedha e Pagesës') }}</label>
+                                        <select wire:model="modal_id_monedha" class="form-select fs-13 py-2 rounded-3">
+                                            @foreach($monedhat as $monedha)
+                                                <option value="{{ $monedha->id }}">{{ $monedha->emri }} ({{ $monedha->kodi }})</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {{-- DROPDOWN 3: MËNYRA E PAGESËS --}}
+                                <div class="col-12">
+                                    <div class="form-group">
+                                        <label class="label text-secondary fw-medium mb-1 fs-12">{{ __('Mënyra e Pagesës') }}</label>
+                                        <select wire:model="metoda_pageses" class="form-select fs-13 py-2 rounded-3">
+                                            <option value="kesh">💵 {{ __('Kesh / Cash') }}</option>
+                                            <option value="karte">💳 {{ __('Kartë Debiti/Krediti') }}</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {{-- INPUT FUSHA: VLERA E PAGESËS (E lënë bosh) --}}
+                                <div class="col-12">
+                                    <div class="form-group">
+                                        <label class="label text-secondary fw-medium mb-1 fs-12">{{ __('Vlera për t\'u Paguar') }} <span class="text-danger">*</span></label>
+                                        <div class="input-group">
+                                            <input type="number" step="0.01" min="0" wire:model="modal_vlera"
+                                                   class="form-control fs-14 fw-semibold py-2 rounded-start-3 @error('modal_vlera') is-invalid @enderror"
+                                                   placeholder="0.00">
+                                            <span class="input-group-text bg-light text-secondary border-start-0 fw-bold fs-12 rounded-end-3">ALL / LEK</span>
+                                        </div>
+                                        @error('modal_vlera') <div class="invalid-feedback d-block mt-1 fs-12">{{ $message }}</div> @enderror
+                                    </div>
+                                </div>
+                            </div>
+
+                        @else
+
+                            <div class="text-center py-4">
+                                <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
+                                <p class="text-secondary fs-12 mt-2 mb-0">{{ __('Duke ngarkuar të dhënat...') }}</p>
+                            </div>
+
+                        @endif
+
+                    </div>
+
+                    {{-- FOOTER --}}
+                    <div class="modal-footer border-top p-3 d-flex justify-content-end gap-2 bg-light bg-opacity-50">
+
+                        <button type="button"
+                                class="btn btn-secondary py-2 px-3 fs-13 fw-semibold rounded-3 text-dark border-0 bg-gray bg-opacity-10"
+                                wire:click="$set('klickedTarga', false)">
+                            {{ __('Anulo') }}
+                        </button>
+
+                        <button type="button"
+                                class="btn btn-success py-2 px-3 fs-13 fw-semibold rounded-3 text-white"
+                                wire:click="ruajTransaksionin">
+                            <i class="ri-check-double-line me-1"></i>
+                            {{ __('Përfundo & Mbyll Operacionin') }}
+                        </button>
+
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    @endif
 </div>
