@@ -5,6 +5,7 @@ namespace App\Livewire\Settings;
 use App\Concerns\PasswordValidationRules;
 use Exception;
 use Flux\Flux;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use Laravel\Fortify\Actions\ConfirmTwoFactorAuthentication;
@@ -22,7 +23,7 @@ use Livewire\Component;
 #[Title('Security settings')]
 class Security extends Component
 {
-    use PasswordValidationRules;
+    use AuthorizesRequests, PasswordValidationRules;
 
     public string $current_password = '';
 
@@ -74,6 +75,8 @@ class Security extends Component
      */
     public function mount(DisableTwoFactorAuthentication $disableTwoFactorAuthentication): void
     {
+        $this->authorize('settings.security');
+
         $this->canManageTwoFactor = Features::canManageTwoFactorAuthentication();
 
         if ($this->canManageTwoFactor) {

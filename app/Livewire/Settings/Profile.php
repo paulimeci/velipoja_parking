@@ -5,6 +5,7 @@ namespace App\Livewire\Settings;
 use App\Concerns\ProfileValidationRules;
 use Flux\Flux;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
@@ -13,7 +14,7 @@ use Livewire\Component;
 #[Title('Profile settings')]
 class Profile extends Component
 {
-    use ProfileValidationRules;
+    use AuthorizesRequests, ProfileValidationRules;
 
     public string $name = '';
 
@@ -24,6 +25,8 @@ class Profile extends Component
      */
     public function mount(): void
     {
+        $this->authorize('settings.profile');
+
         $this->name = Auth::user()->name;
         $this->email = Auth::user()->email;
     }
