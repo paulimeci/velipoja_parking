@@ -29,6 +29,7 @@ class RolesAndPermissionsSeeder extends Seeder
             ['name' => 'admin.dashboard', 'label' => 'Shikimi i Dashboard-it Admin', 'module' => 'Admin'],
             ['name' => 'admin.konfiguro-oret', 'label' => 'Konfigurimi i Orëve', 'module' => 'Admin'],
             ['name' => 'admin.manage-users', 'label' => 'Menaxhimi i Përdoruesve', 'module' => 'Admin'],
+            ['name' => 'admin.delete-users', 'label' => 'Fshirja e Përdoruesve', 'module' => 'Admin'],
             ['name' => 'admin.manage-roles', 'label' => 'Menaxhimi i Roleve & Permissioneve', 'module' => 'Admin'],
 
             // Settings Module

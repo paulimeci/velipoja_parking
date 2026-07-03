@@ -21,13 +21,20 @@
                 <h5 class="mb-0 fw-semibold">{{ __('Përdoruesit e Sistemit') }}</h5>
                 <div class="position-relative">
                     <input wire:model.live.debounce.300ms="search" type="text" class="form-control" placeholder="{{ __('Kërko përdorues...') }}">
-                    <i class="material-symbols-outlined position-absolute top-50 start-0 translate-middle-y ms-2">search</i>
+
                 </div>
             </div>
 
             @if (session()->has('message'))
                 <div class="alert alert-success alert-dismissible fade show" role="alert">
                     {{ session('message') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            @endif
+
+            @if (session()->has('error'))
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    {{ session('error') }}
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             @endif
@@ -56,6 +63,13 @@
                                     <button wire:click="editUser({{ $user->id }})" class="btn btn-sm btn-outline-primary">
                                         <i class="material-symbols-outlined fs-18">edit</i> {{ __('Menaxho Rolet') }}
                                     </button>
+                                    @can('admin.delete-users')
+                                        @if($user->id !== auth()->id() && $user->email !== 'paulin.meci@gmail.com')
+                                            <button wire:click="deleteUser({{ $user->id }})" wire:confirm="{{ __('A jeni i sigurt që dëshironi ta fshini këtë përdorues?') }}" class="btn btn-sm btn-outline-danger ms-2">
+                                                <i class="material-symbols-outlined fs-18">delete</i> {{ __('Fshij') }}
+                                            </button>
+                                        @endif
+                                    @endcan
                                 </td>
                             </tr>
                         @endforeach
