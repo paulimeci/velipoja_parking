@@ -7,10 +7,10 @@
                 <li class="breadcrumb-item">
                     <a href="{{ route('dashboard') }}" class="d-flex align-items-center text-decoration-none">
                         <i class="ri-home-4-line fs-18 text-primary me-1"></i>
-                        <span class="text-secondary fw-medium">Dashboard</span>
+                        <span class="text-secondary fw-medium">{{ __('Dashboard') }}</span>
                     </a>
                 </li>
-                <li class="breadcrumb-item active"><span class="fw-medium">Menaxhimi i Përdoruesve</span></li>
+                <li class="breadcrumb-item active"><span class="fw-medium">{{ __('Menaxhimi i Përdoruesve') }}</span></li>
             </ol>
         </nav>
     @endsection
@@ -18,9 +18,9 @@
     <div class="card bg-white border-0 rounded-3 mb-4">
         <div class="card-body p-4">
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
-                <h5 class="mb-0 fw-semibold">Përdoruesit e Sistemit</h5>
+                <h5 class="mb-0 fw-semibold">{{ __('Përdoruesit e Sistemit') }}</h5>
                 <div class="position-relative">
-                    <input wire:model.live.debounce.300ms="search" type="text" class="form-control" placeholder="Kërko përdorues...">
+                    <input wire:model.live.debounce.300ms="search" type="text" class="form-control" placeholder="{{ __('Kërko përdorues...') }}">
                     <i class="material-symbols-outlined position-absolute top-50 start-0 translate-middle-y ms-2">search</i>
                 </div>
             </div>
@@ -36,10 +36,10 @@
                 <table class="table align-middle">
                     <thead>
                         <tr>
-                            <th>Emri</th>
-                            <th>Email</th>
-                            <th>Rolet</th>
-                            <th class="text-end">Veprime</th>
+                            <th>{{ __('Emri') }}</th>
+                            <th>{{ __('Email') }}</th>
+                            <th>{{ __('Rolet') }}</th>
+                            <th class="text-end">{{ __('Veprime') }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -54,7 +54,7 @@
                                 </td>
                                 <td class="text-end">
                                     <button wire:click="editUser({{ $user->id }})" class="btn btn-sm btn-outline-primary">
-                                        <i class="material-symbols-outlined fs-18">edit</i> Menaxho Rolet
+                                        <i class="material-symbols-outlined fs-18">edit</i> {{ __('Menaxho Rolet') }}
                                     </button>
                                 </td>
                             </tr>
@@ -74,12 +74,12 @@
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content border-0 rounded-3 shadow">
                     <div class="modal-header">
-                        <h5 class="modal-title">Menaxho Rolet për {{ $name }}</h5>
+                        <h5 class="modal-title">{{ __('Menaxho Rolet për') }} {{ $name }}</h5>
                         <button type="button" wire:click="$set('showUserModal', false)" class="btn-close"></button>
                     </div>
                     <div class="modal-body">
                         <div class="mb-3">
-                            <label class="form-label fw-medium">Zgjidh Rolet</label>
+                            <label class="form-label fw-medium">{{ __('Zgjidh Rolet') }}</label>
                             <div class="row">
                                 @foreach($roles as $role)
                                     <div class="col-6 mb-2">
@@ -95,8 +95,8 @@
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" wire:click="$set('showUserModal', false)" class="btn btn-outline-secondary">Anulo</button>
-                        <button type="button" wire:click="saveUser" class="btn btn-primary">Ruaj Ndryshimet</button>
+                        <button type="button" wire:click="$set('showUserModal', false)" class="btn btn-outline-secondary">{{ __('Anulo') }}</button>
+                        <button type="button" wire:click="saveUser" class="btn btn-primary">{{ __('Ruaj Ndryshimet') }}</button>
                     </div>
                 </div>
             </div>
