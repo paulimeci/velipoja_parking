@@ -47,35 +47,6 @@
 
 
 
-            {{-- <li class="menu-item">
-                <a href="{{route('manage.kategorite')}}" class="menu-link">
-                    <span class="material-symbols-outlined menu-icon">contact_page</span>
-                    <span class="title">Kategorite</span>
-                </a>
-            </li>
-
-            <li class="menu-item">
-                <a href="{{route('manage.stervitjen')}}" class="menu-link">
-                    <span class="material-symbols-outlined menu-icon">chat</span>
-                    <span class="title">Stervitja</span>
-                </a>
-            </li>
-
-
-            <li class="menu-item">
-                <a href="{{route('manage.user.data')}}" class="menu-link">
-                    <span class="material-symbols-outlined menu-icon">team_dashboard</span>
-                    <span class="title">UserData</span>
-                </a>
-            </li>
-
-            <li class="menu-item">
-                <a href="{{route('user.managmnet.profile')}}" class="menu-link">
-                    <span class="material-symbols-outlined menu-icon">account_circle</span>
-                    <span class="title">My Profile</span>
-                </a>
-            </li> --}}
-
             <li class="menu-item">
                 <a href="javascript:void(0);" class="menu-link menu-toggle active">
                     <span class="material-symbols-outlined menu-icon">settings</span>
