@@ -56,14 +56,7 @@
 
                     <!-- Language Dropdown -->
                     <li class="header-right-item">
-                        <div class="dropdown notifications language">
-                            <button class="btn btn-secondary dropdown-toggle border-0 p-0 position-relative" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <span class="material-symbols-outlined">translate</span>
-                            </button>
-                            <div class="dropdown-menu dropdown-lg p-0 border-0 dropdown-menu-end">
-                                <!-- Language options -->
-                            </div>
-                        </div>
+                        <livewire:language-switcher />
                     </li>
 
                     <!-- Fullscreen -->
