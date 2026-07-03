@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Operatori;
 
+use Carbon\Carbon;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use App\Models\Admin\KategoriaPageses;
 use App\Models\Admin\Monedhat;
@@ -19,6 +20,13 @@ class LiveKryejOperacionet extends Component
     public $eshte_paguar = false;
     public $shuma_paguar;
     public $kerkoTarge = ''; // Ruante tekstin e kërkimit
+    public $klickedTarga = false;
+    public $mjetiZgjedhur = null;
+    public $koha_qendrimit = '';
+    public $metoda_pageses = 'kesh';
+    public $modal_id_kategoria;
+    public $modal_id_monedha;
+    public $modal_vlera = '';
     public function mount()
     {
         $kategoriaDefault = KategoriaPageses::where('is_default', 1)->first();
@@ -30,6 +38,59 @@ class LiveKryejOperacionet extends Component
         if ($monedhaDefault) {
             $this->id_monedha = $monedhaDefault->id;
         }
+    }
+
+
+    public function shfaqModalPagesen($id)
+    {
+        $this->modal_vlera = ''; // E lëmë bosh fillimisht siç kërkove
+        $this->mjetiZgjedhur = Operacionet::with(['kategoria', 'monedha'])->find($id);
+
+        if ($this->mjetiZgjedhur) {
+            // Vendosim vlerat aktuale default në dropdown-et e modalit
+            $this->modal_id_kategoria = $this->mjetiZgjedhur->id_kategoria;
+            $this->modal_id_monedha = $this->mjetiZgjedhur->id_monedha;
+
+            $hyrja = Carbon::parse($this->mjetiZgjedhur->nisja);
+            $tani = Carbon::now();
+
+            // Llogaritja e saktë pa presje dhjetore
+            $diferencaDite = (int) $hyrja->diffInDays($tani);
+            $diferencaOre = (int) ($hyrja->diffInHours($tani) % 24);
+            $diferencaMinuta = (int) ($hyrja->diffInMinutes($tani) % 60);
+
+            // Ndërtimi i stringut: Shfaq ditët VETËM nëse janë 1 ose më shumë
+            $pjeset = [];
+            if ($diferencaDite >= 1) {
+                $pjeset[] = $diferencaDite . ($diferencaDite == 1 ? ' ditë' : ' ditë');
+            }
+            if ($diferencaOre > 0) {
+                $pjeset[] = $diferencaOre . ' orë';
+            }
+            if ($diferencaMinuta > 0 || empty($pjeset)) {
+                $pjeset[] = $diferencaMinuta . ' min';
+            }
+
+            // Bashkimi i fjalëve bukur me presje dhe "e" në fund
+            if (count($pjeset) > 1) {
+                $fundi = array_pop($pjeset);
+                $this->koha_qendrimit = implode(', ', $pjeset) . ' e ' . $fundi;
+            } else {
+                $this->koha_qendrimit = $pjeset[0];
+            }
+        }
+
+        $this->klickedTarga = true;
+    }
+
+    public function ruajTransaksionin()
+    {
+        // logjika e ruajtjes
+
+        // shembull:
+        // Transaksioni::create([...]);
+
+        dd("ok");
     }
 
     public function ruajOperacionin()
@@ -76,6 +137,8 @@ class LiveKryejOperacionet extends Component
             $this->id_kategoria = $kategoriaDefault->id;
         }
     }
+
+
 
 
 

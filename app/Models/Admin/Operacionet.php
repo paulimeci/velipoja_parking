@@ -17,4 +17,8 @@ class Operacionet extends Model
     {
         return $this->belongsTo(Monedhat::class, 'monedha_id');
     }
+
+    public function kategoria (): BelongsTo {
+        return $this->belongsTo(KategoriaPageses::class, 'kategoria_id');
+    }
 }
