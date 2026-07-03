@@ -3,6 +3,7 @@
 namespace App\Models\Admin;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class OretCmimi extends Model
@@ -13,5 +14,9 @@ class OretCmimi extends Model
     public function cmimet(): HasMany
     {
         return $this->hasMany(CmimiSipasMonedhes::class, 'interval_id');
+    }
+
+    public function kategoria() : BelongsTo {
+        return $this->belongsTo(KategoriaPageses::class, 'id_kategoria_rezervimit');
     }
 }

@@ -11,13 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('adm_oret_cmimi', function (Blueprint $table) {
+        Schema::create('adm_kategoria_pageses', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('id_kategoria_rezervimit')->constrained('adm_kategoria_pageses')->onDelete('cascade');
-            $table->double('nga');
-            $table->double('ne');
+            $table->string('kategoria');
+            $table->boolean('is_default')->default(false);
             $table->timestamps();
         });
+
+        Artisan::call('db:seed', [
+            '--class' => 'KategoriaPagesesSeeder' // Emri i saktë i klasës së Seeder-it tënd
+        ]);
     }
 
     /**
@@ -25,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('adm_oret_cmimi');
+        Schema::dropIfExists('adm_kategoria_pageses');
     }
 };
