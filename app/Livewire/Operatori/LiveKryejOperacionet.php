@@ -43,26 +43,31 @@ class LiveKryejOperacionet extends Component
 
     public function shfaqModalPagesen($id)
     {
-        $this->modal_vlera = ''; // E lëmë bosh fillimisht siç kërkove
         $this->mjetiZgjedhur = Operacionet::with(['kategoria', 'monedha'])->find($id);
 
         if ($this->mjetiZgjedhur) {
-            // Vendosim vlerat aktuale default në dropdown-et e modalit
-            $this->modal_id_kategoria = $this->mjetiZgjedhur->id_kategoria;
-            $this->modal_id_monedha = $this->mjetiZgjedhur->id_monedha;
+            // 1. Gjejmë shërbimin default nga lista e kategorive
+            // Supozojmë se kolona në tabelë quhet 'is_default' (ndryshoje nëse e ke ndryshe, p.sh. 'default')
+            $sherbimiDefault = KategoriaPageses::where('is_default', 1)->first();
 
+            // 2. E vendosim shërbimin default në dropdown. Nëse nuk ekziston, përdorim atë të mjetit.
+            $this->modal_id_kategoria = $sherbimiDefault ? $sherbimiDefault->id : $this->mjetiZgjedhur->id_kategoria;
+
+            // Monedha qëndron ajo që ka mjeti (ose siç dëshiron ta lësh)
+            $this->modal_id_monedha = $this->mjetiZgjedhur->id_monedha;
+            $this->modal_vlera = ''; // Lihet bosh fillimisht
+
+            // Llogaritja e saktë e kohës
             $hyrja = Carbon::parse($this->mjetiZgjedhur->nisja);
             $tani = Carbon::now();
 
-            // Llogaritja e saktë pa presje dhjetore
             $diferencaDite = (int) $hyrja->diffInDays($tani);
             $diferencaOre = (int) ($hyrja->diffInHours($tani) % 24);
             $diferencaMinuta = (int) ($hyrja->diffInMinutes($tani) % 60);
 
-            // Ndërtimi i stringut: Shfaq ditët VETËM nëse janë 1 ose më shumë
             $pjeset = [];
             if ($diferencaDite >= 1) {
-                $pjeset[] = $diferencaDite . ($diferencaDite == 1 ? ' ditë' : ' ditë');
+                $pjeset[] = $diferencaDite . ' ditë';
             }
             if ($diferencaOre > 0) {
                 $pjeset[] = $diferencaOre . ' orë';
@@ -71,7 +76,6 @@ class LiveKryejOperacionet extends Component
                 $pjeset[] = $diferencaMinuta . ' min';
             }
 
-            // Bashkimi i fjalëve bukur me presje dhe "e" në fund
             if (count($pjeset) > 1) {
                 $fundi = array_pop($pjeset);
                 $this->koha_qendrimit = implode(', ', $pjeset) . ' e ' . $fundi;
