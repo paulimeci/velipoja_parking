@@ -8,35 +8,7 @@
                             <span class="material-symbols-outlined">menu</span>
                         </button>
                     </li>
-                    <li>
-                        <form class="src-form position-relative">
-                            <input type="text" class="form-control" placeholder="Search here.....">
-                            <button type="submit" class="src-btn position-absolute top-50 end-0 translate-middle-y bg-transparent p-0 border-0">
-                                <span class="material-symbols-outlined">search</span>
-                            </button>
-                        </form>
-                    </li>
-                    <li>
-                        <!-- Apps Dropdown -->
-                        <div class="dropdown notifications apps">
-                            <button class="btn btn-secondary border-0 p-0 position-relative" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <span class="material-symbols-outlined">apps</span>
-                            </button>
-                            <div class="dropdown-menu dropdown-lg p-0 border-0 py-4 px-3 max-h-312" data-simplebar>
-                                <div class="notification-menu d-flex flex-wrap justify-content-between gap-4">
-                                    <a href="https://www.figma.com/" target="_blank" class="dropdown-item p-0 text-center">
-                                        <img src="{{ asset('assets/images/figma.svg') }}" class="wh-25" alt="figma">
-                                        <span>Figma</span>
-                                    </a>
-                                    <a href="https://www.dribbble.com/" target="_blank" class="dropdown-item p-0 text-center">
-                                        <img src="{{ asset('assets/images/dribbble.svg') }}" class="wh-25" alt="dribbble">
-                                        <span>Dribbble</span>
-                                    </a>
-                                    <!-- Më shumë aplikacione -->
-                                </div>
-                            </div>
-                        </div>
-                    </li>
+
                 </ul>
             </div>
         </div>
@@ -59,24 +31,6 @@
                         <livewire:language-switcher />
                     </li>
 
-                    <!-- Fullscreen -->
-                    <li class="header-right-item">
-                        <button class="fullscreen-btn bg-transparent p-0 border-0" id="fullscreen-button">
-                            <i class="material-symbols-outlined text-body">fullscreen</i>
-                        </button>
-                    </li>
-
-                    <!-- Notifications -->
-                    <li class="header-right-item">
-                        <div class="dropdown notifications noti">
-                            <button class="btn btn-secondary border-0 p-0 position-relative badge" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <span class="material-symbols-outlined">notifications</span>
-                            </button>
-                            <div class="dropdown-menu dropdown-lg p-0 border-0 p-0 dropdown-menu-end">
-                                <!-- Notifications content -->
-                            </div>
-                        </div>
-                    </li>
 
                     <!-- User Profile -->
                     <li class="header-right-item">
@@ -127,46 +81,28 @@
                                     </div>
                                     <div class="flex-grow-1 ms-2">
                                         <h3 class="fw-medium fs-14 mb-0">{{ Auth::user()->name }}</h3>
-                                        <span class="fs-12">Marketing Manager</span>
+
                                     </div>
                                 </div>
                                 <ul class="admin-link ps-0 mb-0 list-unstyled">
                                     <li>
-                                        <a class="dropdown-item admin-item-link d-flex align-items-center text-body" href="#">
+                                        <a class="dropdown-item admin-item-link d-flex align-items-center text-body" href="{{ route('profile.edit') }}">
                                             <i class="material-symbols-outlined">account_circle</i>
-                                            <span class="ms-2">My Profile</span>
+                                            <span class="ms-2">{{ __('My Profile') }}</span>
                                         </a>
                                     </li>
+                                    @can('manage all')
                                     <li>
-                                        <a class="dropdown-item admin-item-link d-flex align-items-center text-body" href="#">
-                                            <i class="material-symbols-outlined">chat</i>
-                                            <span class="ms-2">Messages</span>
+                                        <a class="dropdown-item admin-item-link d-flex align-items-center text-body" href="{{ route('admin.languages') }}">
+                                            <i class="material-symbols-outlined">translate</i>
+                                            <span class="ms-2">{{ __('Gjuhët') }}</span>
                                         </a>
                                     </li>
+                                    @endcan
                                     <li>
-                                        <a class="dropdown-item admin-item-link d-flex align-items-center text-body" href="#">
-                                            <i class="material-symbols-outlined">format_list_bulleted</i>
-                                            <span class="ms-2">My Task</span>
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item admin-item-link d-flex align-items-center text-body" href="#">
-                                            <i class="material-symbols-outlined">credit_card</i>
-                                            <span class="ms-2">Billing</span>
-                                        </a>
-                                    </li>
-                                </ul>
-                                <ul class="admin-link ps-0 mb-0 list-unstyled">
-                                    <li>
-                                        <a class="dropdown-item admin-item-link d-flex align-items-center text-body" href="#">
-                                            <i class="material-symbols-outlined">settings</i>
-                                            <span class="ms-2">Settings</span>
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item admin-item-link d-flex align-items-center text-body" href="#">
-                                            <i class="material-symbols-outlined">support</i>
-                                            <span class="ms-2">Support</span>
+                                        <a class="dropdown-item admin-item-link d-flex align-items-center text-body" href="{{ route('admin.change-password') }}">
+                                            <i class="material-symbols-outlined">lock</i>
+                                            <span class="ms-2">{{ __('Change Password') }}</span>
                                         </a>
                                     </li>
                                     <li>
@@ -174,7 +110,7 @@
                                             @csrf
                                             <button type="submit" class="dropdown-item admin-item-link d-flex align-items-center text-body w-100 border-0 bg-transparent">
                                                 <i class="material-symbols-outlined">logout</i>
-                                                <span class="ms-2">Logout</span>
+                                                <span class="ms-2">{{ __('Logout') }}</span>
                                             </button>
                                         </form>
                                     </li>

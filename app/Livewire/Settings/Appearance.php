@@ -15,4 +15,9 @@ class Appearance extends Component
     {
         $this->authorize('settings.appearance');
     }
+
+    public function render()
+    {
+        return view('livewire.settings.appearance')->layout('layouts.dashboard.app');
+    }
 }
