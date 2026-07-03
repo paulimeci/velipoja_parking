@@ -4,7 +4,8 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB; // <-- Shtuar për të përdorur DB query builder
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema; // <-- Shtuar për të menaxhuar foreign keys
 
 class MonedhaSeeder extends Seeder
 {
@@ -13,6 +14,9 @@ class MonedhaSeeder extends Seeder
      */
     public function run(): void
     {
+        // 1. Çaktivizojmë përkohësisht verifikimin e Foreign Keys që të lejohet truncate
+        Schema::disableForeignKeyConstraints();
+
         // Fshin çdo gjë në tabelë përpara se të bëjë insert (për të shmangur dublikimet)
         DB::table('adm_monedhat')->truncate();
 
@@ -39,5 +43,8 @@ class MonedhaSeeder extends Seeder
                 'updated_at' => now(),
             ],
         ]);
+
+        // 2. Aktivizojmë përsëri kontrollin e Foreign Keys në fund
+        Schema::enableForeignKeyConstraints();
     }
 }

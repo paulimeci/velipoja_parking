@@ -12,9 +12,7 @@ class LiveKryejOperacionet extends Component
 {
     use AuthorizesRequests;
 
-    public function mount()
-    {
-        $this->authorize('operatori.kryej-operacionet');
+
     // Vetitë e formës
     public $targa;
     public $id_kategoria;
