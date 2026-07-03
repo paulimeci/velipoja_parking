@@ -5,22 +5,36 @@ namespace App\Livewire\Admin;
 use App\Models\Admin\KategoriaPageses;
 use App\Models\Admin\Monedhat;
 use App\Models\Admin\OretCmimi;
-use Livewire\Component;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\DB;
+use Livewire\Component;
 
 class LiveAdminKonfiguroOret extends Component
 {
+    use AuthorizesRequests;
+
     public $ora_fillestare;
+
     public $ora_limit;
+
     public $id_kategoria_rezervimit;
 
     // Array dinamik për të mbajtur çmimet sipas monedhave: [monedha_id => vlera]
     public array $cmimet_monedhave = [];
 
     public bool $showOretModal = false;
+
+    public function mount()
+    {
+        $this->authorize('admin.konfiguro-oret');
+    }
+
     public bool $isViewOnly = false;
+
     public $editingId = null;
+
     public ?int $filterKatId = null;
+
     public string $search = '';
 
     // Rregullat e validimit të përshtatshme për array-n e monedhave
@@ -74,7 +88,9 @@ class LiveAdminKonfiguroOret extends Component
         $this->reset(['ora_fillestare', 'ora_limit', 'cmimet_monedhave', 'id_kategoria_rezervimit']);
 
         $fasha = DB::table('adm_oret_cmimi')->where('id', $id)->first();
-        if (!$fasha) return;
+        if (! $fasha) {
+            return;
+        }
 
         $this->ora_fillestare = $fasha->nga;
         $this->ora_limit = $fasha->ne;
@@ -97,7 +113,9 @@ class LiveAdminKonfiguroOret extends Component
         $this->editingId = $id;
 
         $fasha = DB::table('adm_oret_cmimi')->where('id', $id)->first();
-        if (!$fasha) return;
+        if (! $fasha) {
+            return;
+        }
 
         $this->ora_fillestare = $fasha->nga;
         $this->ora_limit = $fasha->ne;
@@ -140,6 +158,7 @@ class LiveAdminKonfiguroOret extends Component
 
         if ($kaMbivendosje) {
             $this->addError('ora_fillestare', 'Ky interval kohor mbivendoset me një fashë ekzistuese për këtë kategori!');
+
             return;
         }
 
@@ -151,7 +170,7 @@ class LiveAdminKonfiguroOret extends Component
                 DB::table('adm_oret_cmimi')->where('id', $this->editingId)->update([
                     'id_kategoria_rezervimit' => $katId,
                     'nga' => $nga_e_re,
-                    'ne'  => $ne_e_re,
+                    'ne' => $ne_e_re,
                     'updated_at' => now(),
                 ]);
                 $intervalId = $this->editingId;
@@ -163,7 +182,7 @@ class LiveAdminKonfiguroOret extends Component
                 $intervalId = DB::table('adm_oret_cmimi')->insertGetId([
                     'id_kategoria_rezervimit' => $katId,
                     'nga' => $nga_e_re,
-                    'ne'  => $ne_e_re,
+                    'ne' => $ne_e_re,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
@@ -173,10 +192,10 @@ class LiveAdminKonfiguroOret extends Component
             foreach ($this->cmimet_monedhave as $monedhaId => $vlera) {
                 DB::table('adm_cmimi_sipas_monedhes')->insert([
                     'interval_id' => $intervalId,
-                    'monedha_id'  => $monedhaId,
-                    'vlera'       => floatval($vlera),
-                    'created_at'  => now(),
-                    'updated_at'  => now(),
+                    'monedha_id' => $monedhaId,
+                    'vlera' => floatval($vlera),
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ]);
             }
         });
@@ -196,38 +215,39 @@ class LiveAdminKonfiguroOret extends Component
     }
 
     public function render()
-{
-    // Marrim monedhat duke përdorur Modelin
-    $monedhat = Monedhat::all();
+    {
+        // Marrim monedhat duke përdorur Modelin
+        $monedhat = Monedhat::all();
 
-    // Marrim fashat bashkë me çmimet, monedhat dhe kategorinë e tyre
-    $fashat = OretCmimi::with(['cmimet.monedha', 'kategoria'])
-        ->when($this->filterKatId, function ($query) {
-            $query->where('id_kategoria_rezervimit', $this->filterKatId);
-        })
-        ->when($this->search, function ($query) {
-            $query->where(function ($q) {
-                $q->where('nga', 'like', '%' . $this->search . '%')
-                    ->orWhere('ne', 'like', '%' . $this->search . '%')
-                    ->orWhereHas('kategoria', function ($qk) {
-                        $qk->where('kategoria', 'like', '%' . $this->search . '%');
-                    });
-            });
-        })
-        ->orderBy('nga', 'asc')
-        ->get();
+        // Marrim fashat bashkë me çmimet, monedhat dhe kategorinë e tyre
+        $fashat = OretCmimi::with(['cmimet.monedha', 'kategoria'])
+            ->when($this->filterKatId, function ($query) {
+                $query->where('id_kategoria_rezervimit', $this->filterKatId);
+            })
+            ->when($this->search, function ($query) {
+                $query->where(function ($q) {
+                    $q->where('nga', 'like', '%'.$this->search.'%')
+                        ->orWhere('ne', 'like', '%'.$this->search.'%')
+                        ->orWhereHas('kategoria', function ($qk) {
+                            $qk->where('kategoria', 'like', '%'.$this->search.'%');
+                        });
+                });
+            })
+            ->orderBy('nga', 'asc')
+            ->get();
 
-    // E përshtasim duke përdorur një emër tjetër që mos të prishim relacionin `kategoria`
-    $konfigurimet = $fashat->map(function ($fasha) {
-        // Krijojmë një atribute të ri "cmimet_mapped" që mos të prekim relacionin origjinal
-        $fasha->cmimet_mapped = $fasha->cmimet->pluck('vlera', 'monedha.kodi')->toArray();
-        return $fasha;
-    });
+        // E përshtasim duke përdorur një emër tjetër që mos të prishim relacionin `kategoria`
+        $konfigurimet = $fashat->map(function ($fasha) {
+            // Krijojmë një atribute të ri "cmimet_mapped" që mos të prekim relacionin origjinal
+            $fasha->cmimet_mapped = $fasha->cmimet->pluck('vlera', 'monedha.kodi')->toArray();
 
-    return view('livewire.admin.live-admin-konfiguro-oret', [
-        'monedhat' => $monedhat,
-        'konfigurimet' => $konfigurimet,
-        'kategorite'    => KategoriaPageses::get(),
-    ])->layout('layouts.dashboard.app');
-}
+            return $fasha;
+        });
+
+        return view('livewire.admin.live-admin-konfiguro-oret', [
+            'monedhat' => $monedhat,
+            'konfigurimet' => $konfigurimet,
+            'kategorite' => KategoriaPageses::get(),
+        ])->layout('layouts.dashboard.app');
+    }
 }

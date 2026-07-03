@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Operatori;
 
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use App\Models\Admin\KategoriaPageses;
 use App\Models\Admin\Monedhat;
 use Livewire\Component;
@@ -9,6 +10,11 @@ use Livewire\Component;
 
 class LiveKryejOperacionet extends Component
 {
+    use AuthorizesRequests;
+
+    public function mount()
+    {
+        $this->authorize('operatori.kryej-operacionet');
     // Vetitë e formës
     public $targa;
     public $id_kategoria;

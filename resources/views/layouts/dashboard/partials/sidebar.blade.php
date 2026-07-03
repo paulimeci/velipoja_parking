@@ -16,18 +16,34 @@
             </li>
 
             <li class="menu-item">
-                <a href="javascript:void(0);" class="menu-link menu-toggle active">
+                <a href="{{ route('dashboard') }}" class="menu-link">
                     <span class="material-symbols-outlined menu-icon">dashboard</span>
                     <span class="title">Dashboard</span>
-                    <span class="count">30</span>
                 </a>
-
             </li>
+
+            @can('admin.dashboard')
+            <li class="menu-item">
+                <a href="{{ route('admin.dashboard') }}" class="menu-link">
+                    <span class="material-symbols-outlined menu-icon">admin_panel_settings</span>
+                    <span class="title">Admin Dashboard</span>
+                </a>
+            </li>
+            @endcan
 
 
             <li class="menu-title small text-uppercase">
                 <span class="menu-title-text">APPS</span>
             </li>
+
+            @can('operatori.kryej-operacionet')
+            <li class="menu-item">
+                <a href="{{ route('operatori.operacionet') }}" class="menu-link">
+                    <span class="material-symbols-outlined menu-icon">rocket_launch</span>
+                    <span class="title">Kryej Operacionet</span>
+                </a>
+            </li>
+            @endcan
 
 
 
@@ -66,7 +82,15 @@
                     <span class="title">Konfigurimet</span>
                 </a>
                 <ul class="menu-sub">
-                    <li class="menu-item"><a href="{{ route('admin.manage.oret') }}" class="menu-link">Konfiguro oret</a></li>
+                    @can('admin.konfiguro-oret')
+                        <li class="menu-item"><a href="{{ route('admin.manage.oret') }}" class="menu-link">Konfiguro oret</a></li>
+                    @endcan
+                    @can('admin.manage-users')
+                        <li class="menu-item"><a href="{{ route('admin.users') }}" class="menu-link">Përdoruesit</a></li>
+                    @endcan
+                    @can('admin.manage-roles')
+                        <li class="menu-item"><a href="{{ route('admin.roles') }}" class="menu-link">Rolet & Permissionet</a></li>
+                    @endcan
                     <li class="menu-item"><a href="#" class="menu-link">Change Password</a></li>
                 </ul>
             </li>
