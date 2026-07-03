@@ -11,6 +11,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         /*->middleware('role:admin')
         ->name('admin.dashboard')*/;
         Route::get('admin/konfiguo/oret',\App\Livewire\Admin\LiveAdminKonfiguroOret::class)->name('admin.manage.oret');
+        Route::get('operatori/procedimet',\App\Livewire\Operatori\LiveKryejOperacionet::class)/*->name('admin.manage.oret')*/;
 
 
 });
