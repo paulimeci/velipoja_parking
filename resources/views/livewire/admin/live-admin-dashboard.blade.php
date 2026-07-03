@@ -6,8 +6,8 @@
                     <div class="row align-items-center">
                         <div class="col-lg-8 col-md-8 col-sm-8">
                             <div class="border-bottom position-relative top-5">
-                                <h3 class="text-white fw-semibold mb-1">Good Morning, <span class="text-danger-div">{{\Illuminate\Support\Facades\Auth::user()->name}}!</span></h3>
-                                <p class="text-light">Here's what's happening with your store today.</p>
+                                <h3 class="text-white fw-semibold mb-1">{{ __('Good Morning') }}, <span class="text-danger-div">{{\Illuminate\Support\Facades\Auth::user()->name}}!</span></h3>
+                                <p class="text-light">{{ __("Here's what's happening with your store today.") }}</p>
                             </div>
 
                             <div class="d-flex align-items-center flex-wrap gap-4 gap-xxl-5">
@@ -16,8 +16,8 @@
                                         <i class="material-symbols-outlined">shopping_bag</i>
                                     </div>
                                     <div class="flex-grow-1 ms-3">
-                                        <h5 class="text-white fw-semibold mb-0">86 New orders</h5>
-                                        <p class="text-light">Awaiting processing</p>
+                                        <h5 class="text-white fw-semibold mb-0">{{ __('86 New orders') }}</h5>
+                                        <p class="text-light">{{ __('Awaiting processing') }}</p>
                                     </div>
                                 </div>
 
@@ -26,8 +26,8 @@
                                         <i class="material-symbols-outlined icon-bg">chat_error</i>
                                     </div>
                                     <div class="flex-grow-1 ms-3">
-                                        <h5 class="text-white fw-semibold mb-0">35 Products</h5>
-                                        <p class="text-light">Out of stock</p>
+                                        <h5 class="text-white fw-semibold mb-0">{{ __('35 Products') }}</h5>
+                                        <p class="text-light">{{ __('Out of stock') }}</p>
                                     </div>
                                 </div>
                             </div>
@@ -50,23 +50,23 @@
                             <div class="d-flex justify-content-between flex-wrap gap-2">
                                 <div>
                                     <div class="d-flex">
-                                        <span>Total Orders</span>
+                                        <span>{{ __('Total Orders') }}</span>
                                         <span class="count">-7.6%</span>
                                     </div>
                                     <h3 class="fs-20 mt-1 mb-0">$72,458</h3>
                                 </div>
-                                <span class="fs-12">Last 7 days</span>
+                                <span class="fs-12">{{ __('Last 7 days') }}</span>
                             </div>
                             <div style="max-width: 153px; margin: auto; margin-top: -27px;  margin-bottom: -18px;">
                                 <div id="total_orders1"></div>
                             </div>
                             <ul class="ps-0 mb-0 list-unstyled stats-list">
                                 <li class="d-flex justify-content-between align-items-center">
-                                    <span class="title">Completed</span>
+                                    <span class="title">{{ __('Completed') }}</span>
                                     <span>62%</span>
                                 </li>
                                 <li class="d-flex justify-content-between align-items-center">
-                                    <span class="title">Pending payment</span>
+                                    <span class="title">{{ __('Pending payment') }}</span>
                                     <span>38%</span>
                                 </li>
                             </ul>
@@ -81,7 +81,7 @@
             <div class="card bg-white border-0 rounded-3 mb-4">
                 <div class="card-body p-4">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3 mb-lg-4">
-                        <h3 class="mb-0">Sales by Locations</h3>
+                        <h3 class="mb-0">{{ __('Sales by Locations') }}</h3>
 
                         <div class="dropdown action-opt">
                             <button class="btn bg-transparent p-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -91,43 +91,43 @@
                                 <li>
                                     <a class="dropdown-item" href="javascript:;">
                                         <i data-feather="clock"></i>
-                                        Today
+                                        {{ __('Today') }}
                                     </a>
                                 </li>
                                 <li>
                                     <a class="dropdown-item" href="javascript:;">
                                         <i data-feather="pie-chart"></i>
-                                        Last 7 Days
+                                        {{ __('Last 7 Days') }}
                                     </a>
                                 </li>
                                 <li>
                                     <a class="dropdown-item" href="javascript:;">
                                         <i data-feather="rotate-cw"></i>
-                                        Last Month
+                                        {{ __('Last Month') }}
                                     </a>
                                 </li>
                                 <li>
                                     <a class="dropdown-item" href="javascript:;">
                                         <i data-feather="calendar"></i>
-                                        Last 1 Year
+                                        {{ __('Last 1 Year') }}
                                     </a>
                                 </li>
                                 <li>
                                     <a class="dropdown-item" href="javascript:;">
                                         <i data-feather="bar-chart"></i>
-                                        All Time
+                                        {{ __('All Time') }}
                                     </a>
                                 </li>
                                 <li>
                                     <a class="dropdown-item" href="javascript:;">
                                         <i data-feather="eye"></i>
-                                        View
+                                        {{ __('View') }}
                                     </a>
                                 </li>
                                 <li>
                                     <a class="dropdown-item" href="javascript:;">
                                         <i data-feather="trash"></i>
-                                        Delete
+                                        {{ __('Delete') }}
                                     </a>
                                 </li>
                             </ul>
@@ -223,12 +223,12 @@
             <div class="card bg-white border-0 rounded-3 mb-4">
                 <div class="card-body p-4">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3 mb-lg-4">
-                        <h3 class="mb-0">Top Selling Products</h3>
+                        <h3 class="mb-0">{{ __('Top Selling Products') }}</h3>
                         <select class="form-select month-select form-control" aria-label="Default select example">
-                            <option selected>Today</option>
-                            <option value="1">Weekly</option>
-                            <option value="2">Monthly</option>
-                            <option value="3">Yearly</option>
+                            <option selected>{{ __('Today') }}</option>
+                            <option value="1">{{ __('Weekly') }}</option>
+                            <option value="2">{{ __('Monthly') }}</option>
+                            <option value="3">{{ __('Yearly') }}</option>
                         </select>
                     </div>
 
@@ -237,11 +237,11 @@
                             <table class="table align-middle">
                                 <thead>
                                 <tr>
-                                    <th scope="col">Product</th>
-                                    <th scope="col">Price</th>
-                                    <th scope="col">Order</th>
-                                    <th scope="col">Stock</th>
-                                    <th scope="col">Amount</th>
+                                    <th scope="col">{{ __('Product') }}</th>
+                                    <th scope="col">{{ __('Price') }}</th>
+                                    <th scope="col">{{ __('Order') }}</th>
+                                    <th scope="col">{{ __('Stock') }}</th>
+                                    <th scope="col">{{ __('Amount') }}</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -325,7 +325,7 @@
                         </div>
 
                         <div class="d-flex justify-content-center justify-content-sm-between align-items-center text-center flex-wrap gap-2 showing-wrap">
-                            <span class="fs-12 fw-medium">Showing 5 of 30 Results</span>
+                            <span class="fs-12 fw-medium">{{ __('Showing 5 of 30 Results') }}</span>
 
                             <nav aria-label="Page navigation example">
                                 <ul class="pagination mb-0 justify-content-center">

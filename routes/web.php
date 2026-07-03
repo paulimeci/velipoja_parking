@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\Admin\LanguageManager;
 use App\Livewire\Admin\LiveAdminDashboard;
 use App\Livewire\Admin\LiveAdminKonfiguroOret;
 use App\Livewire\Admin\ManageRoles;
@@ -17,8 +18,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/admin/dashboard', LiveAdminDashboard::class)->name('admin.dashboard');
     });
 
-        Route::get('admin/konfiguo/oret',\App\Livewire\Admin\LiveAdminKonfiguroOret::class)->name('admin.manage.oret');
-        Route::get('operatori/procedimet',\App\Livewire\Operatori\LiveKryejOperacionet::class)/*->name('admin.manage.oret')*/;
+    Route::get('admin/konfiguo/oret', LiveAdminKonfiguroOret::class)->name('admin.manage.oret');
+    Route::get('operatori/procedimet', LiveKryejOperacionet::class)/* ->name('admin.manage.oret') */;
 
     Route::middleware(['can:admin.konfiguro-oret'])->group(function () {
         Route::get('admin/konfiguo/oret', LiveAdminKonfiguroOret::class)->name('admin.manage.oret');
@@ -30,6 +31,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::middleware(['can:admin.manage-roles'])->group(function () {
         Route::get('admin/rolet', ManageRoles::class)->name('admin.roles');
+    });
+
+    Route::middleware(['can:manage all'])->group(function () {
+        Route::get('admin/gjuhët', LanguageManager::class)->name('admin.languages');
     });
 
     // Operatori Routes
