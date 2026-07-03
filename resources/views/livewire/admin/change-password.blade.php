@@ -1,5 +1,5 @@
 <div>
-    @section('page-title', __('Siguria'))
+    @section('page-title', __('Ndrysho Fjalëkalimin'))
 
     @section('breadcrumb')
         <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
@@ -10,17 +10,16 @@
                         <span class="text-secondary fw-medium">{{ __('Dashboard') }}</span>
                     </a>
                 </li>
-                <li class="breadcrumb-item active"><span class="fw-medium">{{ __('Cilësimet e Sigurisë') }}</span></li>
+                <li class="breadcrumb-item active"><span class="fw-medium">{{ __('Ndrysho Fjalëkalimin') }}</span></li>
             </ol>
         </nav>
     @endsection
 
     <div class="row justify-content-center">
-        <div class="col-lg-8">
+        <div class="col-lg-6">
             <div class="card bg-white border-0 rounded-3 mb-4">
                 <div class="card-body p-4">
-                    <h5 class="mb-2 fw-semibold">{{ __('Përditëso Fjalëkalimin') }}</h5>
-                    <p class="text-secondary mb-4">{{ __('Sigurohuni që llogaria juaj po përdor një fjalëkalim të gjatë dhe të rastësishëm për të qëndruar e sigurt') }}</p>
+                    <h5 class="mb-4 fw-semibold">{{ __('Përditëso Fjalëkalimin') }}</h5>
 
                     @if (session()->has('message'))
                         <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -32,19 +31,19 @@
                     <form wire:submit="updatePassword">
                         <div class="mb-3">
                             <label class="form-label fw-medium">{{ __('Fjalëkalimi Aktual') }}</label>
-                            <input type="password" wire:model="current_password" class="form-control @error('current_password') is-invalid @enderror" required autocomplete="current-password">
+                            <input type="password" wire:model="current_password" class="form-control @error('current_password') is-invalid @enderror">
                             @error('current_password') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label fw-medium">{{ __('Fjalëkalimi i Ri') }}</label>
-                            <input type="password" wire:model="password" class="form-control @error('password') is-invalid @enderror" required autocomplete="new-password">
+                            <input type="password" wire:model="password" class="form-control @error('password') is-invalid @enderror">
                             @error('password') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label fw-medium">{{ __('Konfirmo Fjalëkalimin e Ri') }}</label>
-                            <input type="password" wire:model="password_confirmation" class="form-control" required autocomplete="new-password">
+                            <input type="password" wire:model="password_confirmation" class="form-control">
                         </div>
 
                         <div class="mt-4 text-end">
@@ -56,12 +55,6 @@
                     </form>
                 </div>
             </div>
-
-            {{--
-                Shënim: Dy-faktorësh (2FA) dhe Passkeys kërkojnë komponentë specifikë Flux UI
-                që mund të mos funksionojnë plotësisht me stilin Bootstrap pa modifikime të mëtejshme.
-                Për momentin po lëmë vetëm pjesën e fjalëkalimit që është më e rëndësishme.
-            --}}
         </div>
     </div>
 </div>

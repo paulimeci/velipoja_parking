@@ -3,7 +3,6 @@
 namespace App\Livewire\Settings;
 
 use App\Concerns\ProfileValidationRules;
-use Flux\Flux;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Auth;
@@ -48,7 +47,7 @@ class Profile extends Component
 
         $user->save();
 
-        Flux::toast(variant: 'success', text: __('Profile updated.'));
+        session()->flash('message', __('Profile updated.'));
     }
 
     /**
@@ -66,7 +65,7 @@ class Profile extends Component
 
         $user->sendEmailVerificationNotification();
 
-        Flux::toast(text: __('A new verification link has been sent to your email address.'));
+        session()->flash('message', __('A new verification link has been sent to your email address.'));
     }
 
     #[Computed]
@@ -83,5 +82,10 @@ class Profile extends Component
         $user = Auth::user();
 
         return ! $user instanceof MustVerifyEmail || $user->hasVerifiedEmail();
+    }
+
+    public function render()
+    {
+        return view('livewire.settings.profile')->layout('layouts.dashboard.app');
     }
 }

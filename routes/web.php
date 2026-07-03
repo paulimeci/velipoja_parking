@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\Admin\ChangePassword;
 use App\Livewire\Admin\LanguageManager;
 use App\Livewire\Admin\LiveAdminDashboard;
 use App\Livewire\Admin\LiveAdminKonfiguroOret;
@@ -36,6 +37,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware(['can:manage all'])->group(function () {
         Route::get('admin/gjuhët', LanguageManager::class)->name('admin.languages');
     });
+
+    Route::get('admin/ndrysho-fjalëkalimin', ChangePassword::class)->name('admin.change-password');
 
     // Operatori Routes
     Route::middleware(['can:operatori.kryej-operacionet'])->group(function () {

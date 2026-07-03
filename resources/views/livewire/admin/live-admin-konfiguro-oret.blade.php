@@ -85,7 +85,7 @@
                     @if($filterKatId)
                         @php $katAktive = $kategorite->firstWhere('id', $filterKatId); @endphp
                         @if($katAktive)
-                            <span class="badge bg-primary bg-opacity-15 text-primary rounded-pill px-3 py-2 fs-13">
+                            <span class="badge bg-primary bg-opacity-15 text-secondary  rounded-pill px-3 py-2 fs-13">
                                 {{ __('Filtri') }}: {{ $katAktive->kategoria }}
                                 <button wire:click="filtroKat(null)"
                                         class="border-0 bg-transparent p-0 ms-1 lh-1 text-primary align-middle"

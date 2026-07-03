@@ -52,6 +52,29 @@ class ManageUsers extends Component
         session()->flash('message', 'Roli i përdoruesit u përditësua me sukses.');
     }
 
+    public function deleteUser($id)
+    {
+        $this->authorize('admin.delete-users');
+
+        $user = User::findOrFail($id);
+
+        if ($user->id === auth()->id()) {
+            session()->flash('error', 'Nuk mund të fshini veten tuaj.');
+
+            return;
+        }
+
+        // Optional: protect specific admin email
+        if ($user->email === 'paulin.meci@gmail.com') {
+            session()->flash('error', 'Ky përdorues admin nuk mund të fshihet.');
+
+            return;
+        }
+
+        $user->delete();
+        session()->flash('message', __('Përdoruesi u fshi me sukses.'));
+    }
+
     public function render()
     {
         $users = User::with('roles')
