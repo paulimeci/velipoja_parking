@@ -97,41 +97,59 @@
                  ════════════════════════════════════════ --}}
             <div class="default-table-area">
                 <div class="table-responsive">
-                    <table class="table align-middle">
+                    <table class="table align-middle table-hover">
                         <thead>
                         <tr>
-                            <th scope="col">#</th>
+                            <th scope="col" style="width: 60px;">#</th>
                             <th scope="col">{{ __('Data') }}</th>
-                            <th scope="col">{{ __('Nr_Mjeteve') }}</th>
+                            <th scope="col">{{ __('Nr. Mjeteve') }}</th>
                             <th scope="col">{{ __('Pagesa Lek') }}</th>
-                            <th scope="col">{{ __('Monedha te tjera') }}</th>
-                            <th scope="col">{{ __('View More') }}</th>
+                            <th scope="col">{{ __('Monedha të tjera') }}</th>
+                            {{-- Rregulluar thirja e header-it që të përputhet me butonin --}}
+                            <th scope="col" style="width: 140px;">{{ __('Veprimi') }}</th>
                         </tr>
                         </thead>
                         <tbody>
                         @forelse($raportet as $index => $rreshti)
                             <tr>
-                                <td class="text-body">{{ $index + 1 }}</td>
-                                <td class="text-secondary">
-                                    {{ \Carbon\Carbon::parse($rreshti->data)->format('d/m/Y') }}
+                                <td class="text-body fw-medium">{{ $index + 1 }}</td>
+                                <td class="text-secondary fw-medium">
+                                    {{ \Carbon\Carbon::parse($rreshti['data'])->format('d/m/Y') }}
                                 </td>
-                                <td class="text-secondary">{{ $rreshti->nr_mjeteve }}</td>
-                                <td class="text-secondary">{{ number_format($rreshti->pagesa_lek, 2) }} L</td>
-                                <td class="text-secondary">{{ number_format($rreshti->monedha_te_tjera, 2) }}</td>
+                                <td class="text-dark fw-bold">
+                                    {{ $rreshti['nr_mjeteve'] }} Mjete
+                                </td>
+                                <td class="text-success fw-bold">
+                                    {{ number_format($rreshti['pagesa_lek'], 2) }} LEK
+                                </td>
+                                <td class="text-secondary">
+                                    @if(!empty($rreshti['monedhat_e_tjera']))
+                                        <div class="d-flex flex-column gap-1">
+                                            @foreach($rreshti['monedhat_e_tjera'] as $kodiMonedhes => $vleraMonedhes)
+                                                <div>
+                                                    <span class="badge bg-light text-dark border border-light-subtle fw-bold fs-12 font-monospace">
+                                                        {{ number_format($vleraMonedhes, 2) }} {{ $kodiMonedhes }}
+                                                    </span>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @else
+                                        <span class="text-muted fs-12">-</span>
+                                    @endif
+                                </td>
+                                {{-- KORRIGJIMI: Hoqëm text-end dhe vendosëm gjerësi që të rrijë afër të dhënave --}}
                                 <td>
                                     <button type="button"
-                                            wire:click="shfaqDetajetEDates('{{ $rreshti->data }}')"
-                                            class="btn btn-link text-primary fs-13 fw-medium p-0 border-0"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#modalDetajeTransaksioneve">
-                                        {{ __('Shiko') }}
+                                            wire:click="shfaqDetajetEDates('{{ $rreshti['data'] }}')"
+                                            class="btn btn-sm btn-light border border-light-subtle text-primary fw-semibold px-3 d-inline-flex align-items-center gap-1">
+                                        <i class="ri-eye-line fs-14"></i> Detaje
                                     </button>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="text-center text-secondary py-4">
-                                    {{ __('Nuk ka të dhëna për këtë periudhë.') }}
+                                <td colspan="6" class="text-center py-4 text-muted">
+                                    Nuk ka transaksione për këtë periudhë.
                                 </td>
                             </tr>
                         @endforelse
@@ -142,70 +160,96 @@
 
         </div>
     </div>
-    <div wire:ignore.self class="modal fade" id="modalDetajeTransaksioneve" tabindex="-1" aria-labelledby="modalDetajeTransaksioneveLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content border-0 rounded-3 shadow">
-                <div class="modal-header bg-light py-3">
-                    <h5 class="modal-title fw-bold text-dark fs-16" id="modalDetajeTransaksioneveLabel">
-                        📊 Detajet e Mjeteve për Datën: <span class="text-primary">{{ $dataEPerzgjedhur }}</span>
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-shadow="none" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-4" style="max-height: 70vh; overflow-y: auto;">
+    @if($shfaqModalDetaje)
+        <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden bg-white">
 
-                    @if(count($detajetMjeteve) > 0)
-                        <div class="table-responsive">
-                            <table class="table align-middle table-hover border">
-                                <thead class="bg-light bg-opacity-70 text-secondary fs-12 uppercase fw-bold">
-                                <tr>
-                                    <th scope="col" class="ps-3">Targa</th>
-                                    <th scope="col">Hyrja</th>
-                                    <th scope="col">Ikja</th>
-                                    <th scope="col">Lloji Qëndrimit</th>
-                                    <th scope="col" class="text-end pe-3">Pagesa</th>
-                                </tr>
-                                </thead>
-                                <tbody class="fs-13">
-                                @foreach($detajetMjeteve as $mjeti)
+                    {{-- HEADER MODAL --}}
+                    <div class="modal-header bg-white border-bottom border-light-subtle py-3 px-4">
+                        <h5 class="modal-title fw-bold text-dark fs-18 d-flex align-items-center">
+                            <span class="p-2 bg-primary-subtle text-primary rounded-3 me-2 d-inline-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                                <i class="ri-history-fill fs-18"></i>
+                            </span>
+                            <span>Detajet e Mjeteve për Datën: <span class="text-primary fw-black font-monospace ms-1">{{ $dataEPerzgjedhur }}</span></span>
+                        </h5>
+                        <button type="button" class="btn-close shadow-none" wire:click="mbyllModalin()"></button>
+                    </div>
+
+                    {{-- BODY MODAL --}}
+                    <div class="modal-body p-4 bg-white" style="max-height: 70vh; overflow-y: auto;">
+                        @if(count($detajetMjeteve) > 0)
+                            <div class="table-responsive rounded-3 bg-white border border-light-subtle shadow-sm">
+                                <table class="table align-middle table-hover mb-0">
+                                    <thead class="bg-white border-bottom border-light-subtle text-uppercase text-secondary fs-13 fw-bold tracking-wider">
                                     <tr>
-                                        <td class="ps-3">
-                                            <span class="d-inline-block bg-light border border-dark rounded px-2 py-0.5 fw-bold text-dark text-uppercase font-monospace fs-12">
-                                                {{ $mjeti['targa'] }}
-                                            </span>
-                                        </td>
-                                        <td class="text-secondary">
-                                            {{ \Carbon\Carbon::parse($mjeti['koha_hyrjes'])->format('H:i') }}
-                                            <small class="d-block text-muted fs-11">{{ \Carbon\Carbon::parse($mjeti['koha_hyrjes'])->format('d/m/Y') }}</small>
-                                        </td>
-                                        <td class="text-secondary">
-                                            {{ \Carbon\Carbon::parse($mjeti['koha_ikjes'])->format('H:i') }}
-                                            <small class="d-block text-muted fs-11">{{ \Carbon\Carbon::parse($mjeti['koha_ikjes'])->format('d/m/Y') }}</small>
-                                        </td>
-                                        <td>
-                                            <span class="badge bg-secondary-subtle text-secondary rounded-pill fs-11 fw-medium px-2 py-1">
-                                                {{ $mjeti['lloji_qendrimit'] }}
-                                            </span>
-                                        </td>
-                                        <td class="text-end pe-3 fw-bold text-dark">
-                                            {{ number_format($mjeti['shuma'], 2) }} {{ $mjeti['monedha_kodi'] }}
-                                        </td>
+                                        <th scope="col" class="ps-4 py-3">Targa</th>
+                                        <th scope="col">Hyrja</th>
+                                        <th scope="col">Ikja</th>
+                                        <th scope="col">Lloji Qëndrimit</th>
+                                        <th scope="col" class="text-end pe-4 py-3">Pagesa</th>
                                     </tr>
-                                @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    @else
-                        <div class="text-center py-4 text-muted">
-                            <i class="ri-information-line fs-24 d-block mb-2"></i>
-                            Duke ngarkuar të dhënat...
-                        </div>
-                    @endif
+                                    </thead>
+                                    <tbody class="fs-15">
+                                    @foreach($detajetMjeteve as $mjeti)
+                                        <tr>
+                                            <td class="ps-4 py-3">
+                                                <div class="d-inline-flex align-items-center bg-white border border-dark border-opacity-75 rounded shadow-sm px-3 py-1" style="height: 34px;">
+                                                    <span class="fs-15 fw-black text-dark font-monospace text-uppercase" style="letter-spacing: 0.8px;">
+                                                        {{ $mjeti['targa'] }}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td class="text-dark py-3">
+                                                <div class="d-flex align-items-center">
+                                                    <i class="ri-login-box-line text-success opacity-75 me-2 fs-16"></i>
+                                                    <div>
+                                                        <span class="fw-bold text-dark fs-15">{{ \Carbon\Carbon::parse($mjeti['koha_hyrjes'])->format('H:i') }}</span>
+                                                        <small class="d-block text-muted fs-12 font-monospace">{{ \Carbon\Carbon::parse($mjeti['koha_hyrjes'])->format('d/m/Y') }}</small>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="text-dark py-3">
+                                                <div class="d-flex align-items-center">
+                                                    <i class="ri-logout-box-line text-danger opacity-75 me-2 fs-16"></i>
+                                                    <div>
+                                                        <span class="fw-bold text-dark fs-15">{{ \Carbon\Carbon::parse($mjeti['koha_ikjes'])->format('H:i') }}</span>
+                                                        <small class="d-block text-muted fs-12 font-monospace">{{ \Carbon\Carbon::parse($mjeti['koha_ikjes'])->format('d/m/Y') }}</small>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="py-3">
+                                                <span class="badge bg-indigo-subtle text-indigo border border-indigo-subtle rounded-pill fs-13 fw-semibold px-3 py-1.5" style="background-color: #e0e7ff; color: #4338ca; border-color: #c7d2fe;">
+                                                    {{ $mjeti['lloji_qendrimit'] }}
+                                                </span>
+                                            </td>
+                                            <td class="text-end pe-4 py-3 fw-bold text-dark fs-16">
+                                                <span class="text-success-emphasis font-monospace fw-black">{{ number_format($mjeti['shuma'], 2) }}</span>
+                                                <small class="text-secondary fw-bold fs-12 ms-1">{{ $mjeti['monedha_kodi'] }}</small>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @else
+                            <div class="text-center py-5 bg-white rounded-3 border border-light-subtle shadow-sm">
+                                <div class="spinner-border text-primary mb-3" role="status" style="width: 2rem; height: 2rem;">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="text-secondary mb-0 fs-14 fw-semibold">Duke ngarkuar listën e mjeteve...</p>
+                            </div>
+                        @endif
+                    </div>
 
-                </div>
-                <div class="modal-footer bg-light py-2">
-                    <button type="button" class="btn btn-secondary fs-13 py-2 px-4 rounded-3" data-bs-dismiss="modal">Mbyll</button>
+                    {{-- FOOTER MODAL --}}
+                    <div class="modal-footer bg-white border-top border-light-subtle py-3 px-4">
+                        <button type="button" class="btn btn-light border border-light-subtle text-secondary fw-bold fs-14 py-2 px-4 rounded-3" wire:click="mbyllModalin()">
+                            Mbyll Dritaren
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+    @endif
 </div>
