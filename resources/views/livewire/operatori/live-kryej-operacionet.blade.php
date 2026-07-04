@@ -266,7 +266,7 @@
                                 <div class="col-6">
                                     <div class="form-group">
                                         <label class="label text-secondary fw-medium mb-1 fs-12">{{ __('Ndrysho Shërbimin') }}</label>
-                                        <select wire:model="modal_id_kategoria" class="form-select fs-13 py-2 rounded-3">
+                                        <select wire:model.live="modal_id_kategoria" class="form-select fs-13 py-2 rounded-3">
                                             @foreach($kategorite as $kategoria)
                                                 <option value="{{ $kategoria->id }}">{{ $kategoria->kategoria }}</option>
                                             @endforeach
@@ -278,7 +278,7 @@
                                 <div class="col-6">
                                     <div class="form-group">
                                         <label class="label text-secondary fw-medium mb-1 fs-12">{{ __('Monedha e Pagesës') }}</label>
-                                        <select wire:model="modal_id_monedha" class="form-select fs-13 py-2 rounded-3">
+                                        <select wire:model.live="modal_id_monedha" class="form-select fs-13 py-2 rounded-3">
                                             @foreach($monedhat as $monedha)
                                                 <option value="{{ $monedha->id }}">{{ $monedha->emri }} ({{ $monedha->kodi }})</option>
                                             @endforeach
@@ -297,7 +297,7 @@
                                     </div>
                                 </div>
 
-                                {{-- INPUT FUSHA: VLERA E PAGESËS (E lënë bosh) --}}
+                                {{-- VLERA E PAGESËS (editueshme, mbushet automatikisht) --}}
                                 <div class="col-12">
                                     <div class="form-group">
                                         <label class="label text-secondary fw-medium mb-1 fs-12">{{ __('Vlera për t\'u Paguar') }} <span class="text-danger">*</span></label>
@@ -305,7 +305,9 @@
                                             <input type="number" step="0.01" min="0" wire:model="modal_vlera"
                                                    class="form-control fs-14 fw-semibold py-2 rounded-start-3 @error('modal_vlera') is-invalid @enderror"
                                                    placeholder="0.00">
-                                            <span class="input-group-text bg-light text-secondary border-start-0 fw-bold fs-12 rounded-end-3">ALL / LEK</span>
+                                            <span class="input-group-text bg-light text-secondary border-start-0 fw-bold fs-12 rounded-end-3">
+                                            {{ collect($monedhat)->firstWhere('id', $modal_id_monedha)->kodi ?? 'LEK' }}
+                                        </span>
                                         </div>
                                         @error('modal_vlera') <div class="invalid-feedback d-block mt-1 fs-12">{{ $message }}</div> @enderror
                                     </div>

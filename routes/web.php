@@ -4,6 +4,7 @@ use App\Livewire\Admin\ChangePassword;
 use App\Livewire\Admin\LanguageManager;
 use App\Livewire\Admin\LiveAdminDashboard;
 use App\Livewire\Admin\LiveAdminKonfiguroOret;
+use App\Livewire\Admin\LiveBilanciTransaksioneve;
 use App\Livewire\Admin\ManageRoles;
 use App\Livewire\Admin\ManageUsers;
 use App\Livewire\Operatori\LiveKryejOperacionet;
@@ -20,7 +21,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     Route::get('admin/konfiguo/oret', LiveAdminKonfiguroOret::class)->name('admin.manage.oret');
-    Route::get('operatori/procedimet', LiveKryejOperacionet::class)/* ->name('admin.manage.oret') */;
+    Route::get('operatori/procedimet', LiveKryejOperacionet::class)->name('admin.manage.oret');
+    Route::get('admin/transaksionet', LiveBilanciTransaksioneve::class)->name('admin.bilanci.transaksioneve');
 
     Route::middleware(['can:admin.konfiguro-oret'])->group(function () {
         Route::get('admin/konfiguo/oret', LiveAdminKonfiguroOret::class)->name('admin.manage.oret');
@@ -44,6 +46,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware(['can:operatori.kryej-operacionet'])->group(function () {
         Route::get('operatori/operacionet', LiveKryejOperacionet::class)->name('operatori.operacionet');
     });
+
 });
 
 require __DIR__.'/settings.php';

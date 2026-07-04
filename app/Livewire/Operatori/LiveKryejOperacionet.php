@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Operatori;
 
+use App\Models\Admin\TransaksioniOperacionit;
 use Carbon\Carbon;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use App\Models\Admin\KategoriaPageses;
@@ -27,6 +28,7 @@ class LiveKryejOperacionet extends Component
     public $modal_id_kategoria;
     public $modal_id_monedha;
     public $modal_vlera = '';
+
     public function mount()
     {
         $kategoriaDefault = KategoriaPageses::where('is_default', 1)->first();
@@ -40,41 +42,29 @@ class LiveKryejOperacionet extends Component
         }
     }
 
-
     public function shfaqModalPagesen($id)
     {
-        $this->mjetiZgjedhur = Operacionet::with(['kategoria', 'monedha'])->find($id);
+        // Hiqim ->with(['kategoria','monedha']) — Operacionet s'ka këto relacione
+        $this->mjetiZgjedhur = Operacionet::find($id);
 
         if ($this->mjetiZgjedhur) {
-            // 1. Gjejmë shërbimin default nga lista e kategorive
-            // Supozojmë se kolona në tabelë quhet 'is_default' (ndryshoje nëse e ke ndryshe, p.sh. 'default')
             $sherbimiDefault = KategoriaPageses::where('is_default', 1)->first();
+            $this->modal_id_kategoria = $sherbimiDefault ? $sherbimiDefault->id : null;
 
-            // 2. E vendosim shërbimin default në dropdown. Nëse nuk ekziston, përdorim atë të mjetit.
-            $this->modal_id_kategoria = $sherbimiDefault ? $sherbimiDefault->id : $this->mjetiZgjedhur->id_kategoria;
+            $monedhaDefault = Monedhat::where('kodi', 'ALL')->first();
+            $this->modal_id_monedha = $monedhaDefault ? $monedhaDefault->id : null;
 
-            // Monedha qëndron ajo që ka mjeti (ose siç dëshiron ta lësh)
-            $this->modal_id_monedha = $this->mjetiZgjedhur->id_monedha;
-            $this->modal_vlera = ''; // Lihet bosh fillimisht
-
-            // Llogaritja e saktë e kohës
             $hyrja = Carbon::parse($this->mjetiZgjedhur->nisja);
-            $tani = Carbon::now();
+            $tani  = Carbon::now();
 
-            $diferencaDite = (int) $hyrja->diffInDays($tani);
-            $diferencaOre = (int) ($hyrja->diffInHours($tani) % 24);
+            $diferencaDite   = (int) $hyrja->diffInDays($tani);
+            $diferencaOre    = (int) ($hyrja->diffInHours($tani) % 24);
             $diferencaMinuta = (int) ($hyrja->diffInMinutes($tani) % 60);
 
             $pjeset = [];
-            if ($diferencaDite >= 1) {
-                $pjeset[] = $diferencaDite . ' ditë';
-            }
-            if ($diferencaOre > 0) {
-                $pjeset[] = $diferencaOre . ' orë';
-            }
-            if ($diferencaMinuta > 0 || empty($pjeset)) {
-                $pjeset[] = $diferencaMinuta . ' min';
-            }
+            if ($diferencaDite >= 1) { $pjeset[] = $diferencaDite . ' ditë'; }
+            if ($diferencaOre > 0) { $pjeset[] = $diferencaOre . ' orë'; }
+            if ($diferencaMinuta > 0 || empty($pjeset)) { $pjeset[] = $diferencaMinuta . ' min'; }
 
             if (count($pjeset) > 1) {
                 $fundi = array_pop($pjeset);
@@ -82,28 +72,105 @@ class LiveKryejOperacionet extends Component
             } else {
                 $this->koha_qendrimit = $pjeset[0];
             }
+
+            $this->llogaritCmiminAutomatik();
         }
 
         $this->klickedTarga = true;
     }
 
+    public function llogaritCmiminAutomatik()
+    {
+        if (!$this->mjetiZgjedhur) {
+            return;
+        }
+
+        $hyrja = Carbon::parse($this->mjetiZgjedhur->nisja);
+        $tani  = Carbon::now();
+
+        $totaliMinutaveReal = $hyrja->diffInMinutes($tani);
+        $oreTeqendrimit = max($totaliMinutaveReal / 60, 0.01);
+
+        $fashaOrare = \App\Models\Admin\OretCmimi::where('id_kategoria_rezervimit', $this->modal_id_kategoria)
+            ->whereRaw('? BETWEEN `nga` AND `ne`', [$oreTeqendrimit])
+            ->first();
+
+        if (!$fashaOrare) {
+            $fashaOrare = \App\Models\Admin\OretCmimi::where('id_kategoria_rezervimit', $this->modal_id_kategoria)
+                ->orderBy('ne', 'desc')
+                ->first();
+        }
+
+        $cmimiMonedhes = $fashaOrare
+            ? $fashaOrare->cmimet()->where('monedha_id', $this->modal_id_monedha)->first()
+            : null;
+
+        $this->modal_vlera = $cmimiMonedhes ? $cmimiMonedhes->vlera : '';
+    }
+
+    public function updatedModalIdMonedha()
+    {
+        $this->llogaritCmiminAutomatik();
+    }
+
+// Ri-llogarit çmimin nëse përdoruesi ndryshon Shërbimin nga dropdown-i
+    public function updatedModalIdKategoria()
+    {
+        $this->llogaritCmiminAutomatik();
+    }
+
     public function ruajTransaksionin()
     {
-        // logjika e ruajtjes
+        $this->validate([
+            'modal_id_kategoria' => 'required',
+            'modal_id_monedha'   => 'required',
+            'modal_vlera'        => 'required|numeric|min:0',
+        ], [
+            'modal_vlera.required' => 'Ju lutem vendosni vlerën e pagesës.',
+        ]);
 
-        // shembull:
-        // Transaksioni::create([...]);
+        if (!$this->mjetiZgjedhur) {
+            return;
+        }
 
-        dd("ok");
+        // ════════════════════════════════════════════════
+        // 1) RUAJTJA E TRANSAKSIONIT (adm_transaksioni_operacionit)
+        // ════════════════════════════════════════════════
+        TransaksioniOperacionit::create([
+            'id_operacionit' => $this->mjetiZgjedhur->id,   // lidhja me mjetin/operacionin
+            'id_prenotimit'  => $this->modal_id_kategoria,  // shërbimi/kategoria e zgjedhur në modal
+            'status_pagesa'  => 'paguar',                   // mbyllja e operacionit nënkupton pagesë
+            'monedha'        => $this->modal_id_monedha,
+            'vlera'          => $this->modal_vlera,
+        ]);
+
+        // ════════════════════════════════════════════════
+        // 2) MBYLLJA E OPERACIONIT (adm_operacionet)
+        // ════════════════════════════════════════════════
+        $this->mjetiZgjedhur->update([
+            'ikja'   => now(),
+            'status' => 'larguar',
+        ]);
+
+        // Mbyllim modalin dhe pastrojmë state-in
+        $this->klickedTarga = false;
+        $this->mjetiZgjedhur = null;
+        $this->koha_qendrimit = '';
+        $this->modal_vlera = '';
+
+        session()->flash('success', 'Operacioni u mbyll me sukses!');
     }
 
     public function ruajOperacionin()
     {
+        // Pastrojmë targën: heqim hapësirat dhe e kthejmë me shkronja të mëdha
+        $targaPastruar = strtoupper(str_replace(' ', '', $this->targa));
+
         // Validimi i fushave
         $rules = [
-            'targa'        => 'required|string|max:20',
-            'id_kategoria' => 'required',
-            'id_monedha'   => 'required',
+            'targa' => 'required|string|max:20',
+            /* 'id_kategoria' => 'required',
+            'id_monedha'   => 'required', */
         ];
 
         if ($this->eshte_paguar) {
@@ -118,13 +185,25 @@ class LiveKryejOperacionet extends Component
         ]);
 
         // ════════════════════════════════════════════════
+        // KONTROLLI: A ËSHTË MJETI TASHMË "PREZENT" NË PARKING?
+        // ════════════════════════════════════════════════
+        $ekziston = Operacionet::where('status', 'prezent')
+            ->whereRaw("REPLACE(UPPER(targa), ' ', '') = ?", [$targaPastruar])
+            ->exists();
+
+        if ($ekziston) {
+            $this->addError('targa', 'Kjo targë është tashmë e regjistruar si "Prezent" në parking.');
+            return;
+        }
+
+        // ════════════════════════════════════════════════
         // RUAJTJA NË DATABAZË (Tabela: adm_operacionet)
         // ════════════════════════════════════════════════
         Operacionet::create([
-            'targa'  => strtoupper($this->targa), // E kthejmë targën me shkronja të mëdha automatikisht
-            'nisja'  => now(),                    // Vendos datën dhe orën aktuale
-            'ikja'   => null,                     // E lëmë null siç kërkove
-            'status' => 'prezent',                // Vlera nga enumi
+            'targa'  => $targaPastruar, // E ruajmë të pastruar (pa hapësira, me shkronja të mëdha)
+            'nisja'  => now(),
+            'ikja'   => null,
+            'status' => 'prezent',
         ]);
 
         // TODO: Këtu më vonë do shtohet logjika e dytë për ruajtjen te tabela e pagesave
@@ -141,9 +220,6 @@ class LiveKryejOperacionet extends Component
             $this->id_kategoria = $kategoriaDefault->id;
         }
     }
-
-
-
 
 
     public function render()
