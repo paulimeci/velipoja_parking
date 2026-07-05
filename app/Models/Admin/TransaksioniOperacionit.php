@@ -2,6 +2,7 @@
 
 namespace App\Models\Admin;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -17,5 +18,9 @@ class TransaksioniOperacionit extends Model
 
     public function fashaOrare () :BelongsTo {
         return $this->belongsTo(OretCmimi::class, 'id_fashes_orare');
+    }
+
+    public function operatori () :BelongsTo {
+        return $this->belongsTo(User::class, 'id_operatori');
     }
 }

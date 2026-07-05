@@ -13,7 +13,7 @@ use Livewire\Component;
 
 class LiveKryejOperacionet extends Component
 {
-    use AuthorizesRequests;
+    use AuthorizesRequests, Sweet;
 
     // Vetitë e formës
     public $targa;
@@ -121,13 +121,17 @@ class LiveKryejOperacionet extends Component
     {
         $this->mjetiZgjedhur = $operacioni;
 
-        // NEW: e ngarkojmë me relacionin fashaOrare që ta kemi gati për shfaqje
+        // Ngarkojmë me relacionin fashaOrare që ta kemi gati për shfaqje
         $transaksioniEkzistues = TransaksioniOperacionit::with('fashaOrare')
             ->where('id_operacionit', $operacioni->id)
             ->first();
 
-        // NEW: e ruajmë në vetinë publike për ta përdorur në blade
         $this->transaksioniIRuajtur = $transaksioniEkzistues;
+
+        // 1. LLOGARITJA E KOHËS REALE (Në orë me presje, p.sh. 5 orë e 3 min = 5.05)
+        $hyrja = Carbon::parse($operacioni->nisja);
+        $tani  = Carbon::now();
+        $oreTeQendrimitReal = max($hyrja->diffInMinutes($tani) / 60, 0.01);
 
         if ($this->eshteRegjistrimParaprak) {
             $sherbimiDefault = KategoriaPageses::where('is_default', 1)->first();
@@ -146,7 +150,7 @@ class LiveKryejOperacionet extends Component
             $this->modal_id_kategoria = $transaksioniEkzistues->id_prenotimit;
             $this->modal_id_monedha   = $transaksioniEkzistues->monedha;
             $this->modal_id_fasha     = $transaksioniEkzistues->id_fashes_orare;
-            $this->modal_sasia        = $transaksioniEkzistues->sasia ?? 1; // NEW
+            $this->modal_sasia        = $transaksioniEkzistues->sasia ?? 1;
             $this->modal_vlera        = $transaksioniEkzistues->vlera;
         } else {
             $sherbimiDefault = KategoriaPageses::where('is_default', 1)->first();
@@ -155,14 +159,18 @@ class LiveKryejOperacionet extends Component
             $monedhaDefault = Monedhat::where('kodi', 'ALL')->first();
             $this->modal_id_monedha = $monedhaDefault ? $monedhaDefault->id : null;
 
-            $this->modal_id_fasha = null;
+            // FIX: përdorim metodën e përbashkët në vend të logjikës së dyfishtë
+            if ($this->modal_id_kategoria) {
+                $fashaEPershtatshme = $this->gjejFashenPerKohenReale($this->modal_id_kategoria);
+                $this->modal_id_fasha = $fashaEPershtatshme ? $fashaEPershtatshme->id : null;
+            } else {
+                $this->modal_id_fasha = null;
+            }
 
             $this->llogaritCmiminAutomatik();
         }
 
-        $hyrja = Carbon::parse($operacioni->nisja);
-        $tani  = Carbon::now();
-
+        // 3. SHFAQJA E TEKSTIT TË KOHËS SË QËNDRIMIT
         $diferencaDite   = (int) $hyrja->diffInDays($tani);
         $diferencaOre    = (int) ($hyrja->diffInHours($tani) % 24);
         $diferencaMinuta = (int) ($hyrja->diffInMinutes($tani) % 60);
@@ -180,6 +188,28 @@ class LiveKryejOperacionet extends Component
         }
 
         $this->klickedTarga = true;
+    }
+    // NEW: Metodë e përbashkët — gjen fashën orare që përputhet me kohën reale të qëndrimit
+    private function gjejFashenPerKohenReale(int $idKategoria): ?\App\Models\Admin\OretCmimi
+    {
+        if (!$this->mjetiZgjedhur) {
+            return null;
+        }
+
+        $hyrja = Carbon::parse($this->mjetiZgjedhur->nisja);
+        $tani  = Carbon::now();
+        $oreTeQendrimitReal = max($hyrja->diffInMinutes($tani) / 60, 0.01);
+
+        $fashatEKategorise = \App\Models\Admin\OretCmimi::where('id_kategoria_rezervimit', $idKategoria)
+            ->orderBy('nga')
+            ->get();
+
+        $fashaAutodetektuar = $fashatEKategorise->first(function ($fasha) use ($oreTeQendrimitReal) {
+            return $oreTeQendrimitReal >= $fasha->nga && $oreTeQendrimitReal <= $fasha->ne;
+        });
+
+        // Nëse ka kaluar limitin e fundit, merr fashën maksimale
+        return $fashaAutodetektuar ?: $fashatEKategorise->last();
     }
 
     public function llogaritCmiminAutomatik()
@@ -263,17 +293,20 @@ class LiveKryejOperacionet extends Component
         $kategoria = KategoriaPageses::find($this->modal_id_kategoria);
 
         if ($kategoria && $kategoria->eshteNjesiaDite()) {
-            // NEW: kategori ditë/natë — marrim RRESHTIN E VETËM të çmimit të njësisë
             $njesiaCmimi = \App\Models\Admin\OretCmimi::where('id_kategoria_rezervimit', $this->modal_id_kategoria)
                 ->first();
             $this->modal_id_fasha = $njesiaCmimi ? $njesiaCmimi->id : null;
-            $this->modal_sasia = 1; // reset sasia në 1 kur ndryshon kategoria
-        } else {
-            // Orë — sillet si më parë, fasha e parë default
+            $this->modal_sasia = 1;
+        } elseif ($this->eshteRegjistrimParaprak) {
+            // Parapagesë — s'ka kohë reale kuptimplote ende, marrim fashën e parë si default
             $fashaEPare = \App\Models\Admin\OretCmimi::where('id_kategoria_rezervimit', $this->modal_id_kategoria)
                 ->orderBy('nga')
                 ->first();
             $this->modal_id_fasha = $fashaEPare ? $fashaEPare->id : null;
+        } else {
+            // FIX: Mbyllje reale — gjejmë fashën që PËRPUTHET me kohën reale të qëndrimit
+            $fashaEPershtatshme = $this->gjejFashenPerKohenReale($this->modal_id_kategoria);
+            $this->modal_id_fasha = $fashaEPershtatshme ? $fashaEPershtatshme->id : null;
         }
 
         $this->llogaritCmiminAutomatik();

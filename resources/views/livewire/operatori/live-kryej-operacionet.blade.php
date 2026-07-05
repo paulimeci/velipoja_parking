@@ -19,7 +19,7 @@
 
                     <div class="tab-content" id="myTabContent">
                         <div class="tab-pane fade show active" id="preview-tab-pane" role="tabpanel" aria-labelledby="preview-tab" tabindex="0">
-                            {{-- ═══ Forma e regjistrimit — thjeshtuar, pa fusha dinamike inline ═══ --}}
+                            {{-- ═══ Forma e regjistrimit ═══ --}}
                             <form wire:submit.prevent="ruajOperacionin">
                                 <div class="row align-items-end">
 
@@ -113,24 +113,28 @@
                             </div>
                         </div>
 
-                        {{-- SEKSIONI QENDROR: TARGA (Kur klikohet thërret Backend dhe hap modalin) --}}
+                        {{-- SEKSIONI QENDROR: TARGA --}}
                         <div class="text-center py-2.5 my-1">
                             <div class="d-inline-flex align-items-center justify-content-center bg-white border border-dark border-2 rounded-2 w-100 shadow-sm"
                                  style="height: 40px; cursor: pointer;"
-                                 wire:click="shfaqModalPagesen({{ $mjeti->id }})"
-                                 data-bs-toggle="modal" data-bs-target="#modalPagesaMjetit">
+                                 wire:click="shfaqModalPagesen({{ $mjeti->id }})">
                                 <span class="fs-18 fw-bolder text-dark font-monospace text-uppercase" style="letter-spacing: 0.8px;">
                                     {{ $mjeti->targa }}
                                 </span>
                             </div>
                         </div>
 
-                        {{-- SEKSIONI POSHTË: STATUSI I PAGESËS --}}
                         <div class="d-flex justify-content-between align-items-center border-top border-dark border-opacity-10 pt-1.5">
                             <span class="fs-10 text-secondary">{{ __('Pagesa') }}:</span>
-                            <span class="badge bg-danger bg-opacity-10 text-danger rounded-2 px-1.5 py-0.5 fs-10 fw-bold">
-                                {{ __('Pa Paguar') }}
-                            </span>
+                            @if(isset($mjeti->transaksioni) && $mjeti->transaksioni->status_pagesa === 'paguar')
+                                <span class="badge bg-success bg-opacity-10 text-success rounded-2 px-1.5 py-0.5 fs-10 fw-bold">
+                                    {{ __('Paguar') }}
+                                </span>
+                            @else
+                                <span class="badge bg-danger bg-opacity-10 text-danger rounded-2 px-1.5 py-0.5 fs-10 fw-bold">
+                                    {{ __('Pa Paguar') }}
+                                </span>
+                            @endif
                         </div>
 
                     </div>
@@ -147,22 +151,13 @@
           SEKSIONI 3: MODAL POP-UP (PAGESA / MBYLLJA)
          ════════════════════════════════════════ --}}
     @if($klickedTarga)
-
-        <div wire:ignore.self
-             class="modal fade show d-block"
-             id="modalPagesaMjetit"
-             tabindex="-1"
-             aria-labelledby="modalPagesaMjetitLabel"
-             aria-modal="true"
-             role="dialog"
-             style="background: rgba(0,0,0,0.5);">
-
+        <div class="modal fade show d-block" id="modalPagesaMjetit" tabindex="-1" role="dialog" style="background: rgba(0,0,0,0.5);">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content border-0 bg-white shadow rounded-3">
 
                     {{-- KOKA E MODALIT --}}
                     <div class="modal-header border-bottom p-4">
-                        <h5 class="modal-title fs-16 fw-semibold" id="modalPagesaMjetitLabel">
+                        <h5 class="modal-title fs-16 fw-semibold">
                             <i class="ri-money-dollar-circle-line align-middle me-1 text-primary fs-20"></i>
                             @if($eshteRegjistrimParaprak)
                                 {{ __('Pagesa Paraprake — Mjeti Mbetet Prezent') }}
@@ -175,59 +170,49 @@
 
                     {{-- TRUPI --}}
                     <div class="modal-body p-4">
-
                         @if($mjetiZgjedhur)
-
                             <div class="text-center mb-4">
-                                <div class="d-inline-flex align-items-center justify-content-center bg-light border border-dark border-2 rounded-2 px-4 py-1"
-                                     style="min-width: 160px; height: 45px;">
-                                <span class="fs-20 fw-black text-dark font-monospace text-uppercase" style="letter-spacing: 0.8px;">
-                                    {{ $mjetiZgjedhur->targa }}
-                                </span>
+                                <div class="d-inline-flex align-items-center justify-content-center bg-light border border-dark border-2 rounded-2 px-4 py-1" style="min-width: 160px; height: 45px;">
+                                    <span class="fs-20 fw-black text-dark font-monospace text-uppercase" style="letter-spacing: 0.8px;">
+                                        {{ $mjetiZgjedhur->targa }}
+                                    </span>
                                 </div>
                             </div>
 
                             <table class="table table-sm table-borderless fs-13 mb-3">
                                 <tbody>
-
                                 <tr class="border-bottom border-light">
                                     <td class="text-secondary py-2 fw-medium">{{ __('Koha e Hyrjes') }}:</td>
                                     <td class="text-dark py-2 fw-semibold text-end">
                                         {{ \Carbon\Carbon::parse($mjetiZgjedhur->nisja)->format('d/m/Y - H:i') }}
                                     </td>
                                 </tr>
-
                                 <tr class="border-bottom border-light">
                                     <td class="text-secondary py-2 fw-medium">{{ __('Koha Aktuale') }}:</td>
                                     <td class="text-primary py-2 fw-semibold text-end">
                                         {{ \Carbon\Carbon::now()->format('d/m/Y - H:i') }}
                                     </td>
                                 </tr>
-
                                 <tr class="border-bottom border-light bg-light bg-opacity-50">
                                     <td class="text-secondary py-2 fw-bold text-danger">{{ __('Koha e Qëndrimit') }}:</td>
                                     <td class="text-danger py-2 fw-bold text-end fs-14">
                                         <i class="ri-time-line me-1"></i> {{ $koha_qendrimit }}
                                     </td>
                                 </tr>
-
-                                {{-- NEW: Shfaqet vetëm nëse ka pasur parapagesë (transaksion i ruajtur me fashë) --}}
-                                                @if($transaksioniIRuajtur && $transaksioniIRuajtur->fashaOrare)
-                                                    <tr class="border-bottom border-light">
-                                                        <td class="text-secondary py-2 fw-medium">{{ __('Statusi') }}:</td>
-                                                        <td class="py-2 text-end">
-                            <span class="badge bg-success bg-opacity-10 text-success rounded-2 px-2 py-1 fs-12 fw-bold">
-                                {{ __('Paguar') }} [{{ $transaksioniIRuajtur->fashaOrare->nga }}-{{ $transaksioniIRuajtur->fashaOrare->ne }}]
-                            </span>
-                                                        </td>
-                                                    </tr>
-                                                @endif
-
+                                @if($transaksioniIRuajtur && $transaksioniIRuajtur->fashaOrare)
+                                    <tr class="border-bottom border-light">
+                                        <td class="text-secondary py-2 fw-medium">{{ __('Statusi') }}:</td>
+                                        <td class="py-2 text-end">
+                                                <span class="badge bg-success bg-opacity-10 text-success rounded-2 px-2 py-1 fs-12 fw-bold">
+                                                    {{ __('Paguar') }} [{{ $transaksioniIRuajtur->fashaOrare->nga }}-{{ $transaksioniIRuajtur->fashaOrare->ne }}]
+                                                </span>
+                                        </td>
+                                    </tr>
+                                @endif
                                 </tbody>
                             </table>
 
                             <div class="row g-3 mt-2">
-                                {{-- DROPDOWN 1: SHËRBIMI --}}
                                 <div class="col-6">
                                     <div class="form-group">
                                         <label class="label text-secondary fw-medium mb-1 fs-12">{{ __('Ndrysho Shërbimin') }}</label>
@@ -239,7 +224,6 @@
                                     </div>
                                 </div>
 
-                                {{-- DROPDOWN 2: MONEDHA --}}
                                 <div class="col-6">
                                     <div class="form-group">
                                         <label class="label text-secondary fw-medium mb-1 fs-12">{{ __('Monedha e Pagesës') }}</label>
@@ -251,18 +235,14 @@
                                     </div>
                                 </div>
 
-                                {{-- KONTROLLI DINAMIK: DITË vs ORË --}}
                                 @if($kategoriaAktuale && $kategoriaAktuale->njesia_matjes === 'dite')
-                                    {{-- Shfaqet VETËM nëse njësia është DITË --}}
                                     <div class="col-12">
                                         <div class="form-group">
                                             <label class="label text-secondary fw-medium mb-1 fs-12">{{ __('Sa Ditë / Netë?') }}</label>
-                                            <input type="number" step="1" min="1" wire:model.live="modal_sasia"
-                                                   class="form-control fs-13 py-2 rounded-3" placeholder="{{ __('p.sh. 2') }}">
+                                            <input type="number" step="1" min="1" wire:model.live="modal_sasia" class="form-control fs-13 py-2 rounded-3" placeholder="{{ __('p.sh. 2') }}">
                                         </div>
                                     </div>
                                 @else
-                                    {{-- Shfaqet VETËM nëse njësia është ORË (ose kur bëhet parapagesë me orë) --}}
                                     <div class="col-12">
                                         <div class="form-group">
                                             <label class="label text-secondary fw-medium mb-1 fs-12">{{ __('Fasha Orare') }}</label>
@@ -277,7 +257,6 @@
                                     </div>
                                 @endif
 
-                                {{-- DROPDOWN 3: MËNYRA E PAGESËS --}}
                                 <div class="col-12">
                                     <div class="form-group">
                                         <label class="label text-secondary fw-medium mb-1 fs-12">{{ __('Mënyra e Pagesës') }}</label>
@@ -288,46 +267,33 @@
                                     </div>
                                 </div>
 
-                                {{-- VLERA E PAGESËS --}}
                                 <div class="col-12">
                                     <div class="form-group">
                                         <label class="label text-secondary fw-medium mb-1 fs-12">{{ __('Vlera për t\'u Paguar') }} <span class="text-danger">*</span></label>
                                         <div class="input-group">
-                                            <input type="number" step="0.01" min="0" wire:model="modal_vlera"
-                                                   class="form-control fs-14 fw-semibold py-2 rounded-start-3 @error('modal_vlera') is-invalid @enderror"
-                                                   placeholder="0.00">
+                                            <input type="number" step="0.01" min="0" wire:model="modal_vlera" class="form-control fs-14 fw-semibold py-2 rounded-start-3 @error('modal_vlera') is-invalid @enderror" placeholder="0.00">
                                             <span class="input-group-text bg-light text-secondary border-start-0 fw-bold fs-12 rounded-end-3">
-                    {{ collect($monedhat)->firstWhere('id', $modal_id_monedha)->kodi ?? 'LEK' }}
-                </span>
+                                                {{ collect($monedhat)->firstWhere('id', $modal_id_monedha)->kodi ?? 'LEK' }}
+                                            </span>
                                         </div>
                                         @error('modal_vlera') <div class="invalid-feedback d-block mt-1 fs-12">{{ $message }}</div> @enderror
                                     </div>
                                 </div>
                             </div>
-
                         @else
-
                             <div class="text-center py-4">
                                 <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
                                 <p class="text-secondary fs-12 mt-2 mb-0">{{ __('Duke ngarkuar të dhënat...') }}</p>
                             </div>
-
                         @endif
-
                     </div>
 
                     {{-- FOOTER --}}
                     <div class="modal-footer border-top p-3 d-flex justify-content-end gap-2 bg-light bg-opacity-50">
-
-                        <button type="button"
-                                class="btn btn-secondary py-2 px-3 fs-13 fw-semibold rounded-3 text-dark border-0 bg-gray bg-opacity-10"
-                                wire:click="$set('klickedTarga', false)">
+                        <button type="button" class="btn btn-secondary py-2 px-3 fs-13 fw-semibold rounded-3 text-dark border-0 bg-gray bg-opacity-10" wire:click="$set('klickedTarga', false)">
                             {{ __('Anulo') }}
                         </button>
-
-                        <button type="button"
-                                class="btn btn-success py-2 px-3 fs-13 fw-semibold rounded-3 text-white"
-                                wire:click="ruajTransaksionin">
+                        <button type="button" class="btn btn-success py-2 px-3 fs-13 fw-semibold rounded-3 text-white" wire:click="ruajTransaksionin">
                             <i class="ri-check-double-line me-1"></i>
                             @if($eshteRegjistrimParaprak)
                                 {{ __('Ruaj Pagesën') }}
@@ -335,12 +301,130 @@
                                 {{ __('Përfundo & Mbyll Operacionin') }}
                             @endif
                         </button>
-
                     </div>
 
                 </div>
             </div>
         </div>
-
     @endif
+
+    {{-- STRUKTURA E FATURËS TERMRE --}}
+    <div id="fatura-print" class="d-none-screen">
+        <div class="fatura-container">
+            <div class="text-center fw-bold fs-16 mb-1">VELIPOJA PARKING</div>
+            <div class="text-center fs-11 mb-3">Faleminderit për vizitën tuaj!</div>
+
+            <div class="vije-ndarese"></div>
+
+            <table class="tabela-fature">
+                <tr>
+                    <td>TARGA:</td>
+                    <td class="text-end fw-bold fs-14" id="fat-targa"></td>
+                </tr>
+                <tr>
+                    <td>GJENDJA:</td>
+                    <td class="text-end fw-bold" id="fat-status"></td>
+                </tr>
+                <tr>
+                    <td>ORA E HYRJES:</td>
+                    <td class="text-end" id="fat-hyrja"></td>
+                </tr>
+                <tr>
+                    <td>ORA E IKJES:</td>
+                    <td class="text-end" id="fat-ikja"></td>
+                </tr>
+                <tr>
+                    <td>SHËRBIMI:</td>
+                    <td class="text-end" id="fat-modaliteti"></td>
+                </tr>
+                <tr>
+                    <td>SASIA / FASHA:</td>
+                    <td class="text-end" id="fat-sasia"></td>
+                </tr>
+                <tr>
+                    <td>PAGESA:</td>
+                    <td class="text-end" id="fat-metoda"></td>
+                </tr>
+                <tr class="fs-13 fw-bold">
+                    <td>TOTALI:</td>
+                    <td class="text-end" id="fat-vlera"></td>
+                </tr>
+            </table>
+
+            <div class="vije-ndarese"></div>
+
+            <div class="text-center fs-10 mt-2">
+                Operatori: <span id="fat-operatori"></span><br>
+                Data: {{ now()->format('d/m/Y H:i:s') }}
+            </div>
+        </div>
+    </div>
+
+    {{-- STILE SHTESË PËR PRINTIM TË SAKTË TË FATURËS TERMRE 80mm/58mm NË A4 --}}
+    <style>
+        #fatura-print { display: none; }
+
+        @media print {
+            body * { display: none !important; }
+            #fatura-print, #fatura-print * { display: block !important; }
+
+            #fatura-print {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0;
+                padding: 40px;
+                background: #fff;
+                color: #000;
+                font-family: 'Courier New', Courier, monospace;
+            }
+
+            .fatura-container {
+                width: 120mm;
+                margin: 0 auto;
+                padding: 20px;
+                border: 1px dashed #ccc;
+            }
+
+            .text-center { text-align: center; }
+            .text-end { text-align: right; }
+            .fw-bold { font-weight: bold; }
+            .fs-16 { font-size: 20px; }
+            .fs-14 { font-size: 16px; }
+            .fs-13 { font-size: 15px; }
+            .fs-11 { font-size: 13px; }
+            .fs-10 { font-size: 12px; }
+            .mb-1 { margin-bottom: 5px; }
+            .mb-3 { margin-bottom: 15px; }
+            .mt-2 { margin-top: 15px; }
+            .vije-ndarese { border-top: 2px dashed #000; margin: 12px 0; }
+            .tabela-fature { width: 100%; font-size: 13px; }
+            .tabela-fature td { padding: 6px 0; vertical-align: top; }
+        }
+    </style>
+
+    {{-- JAVASCRIPT KATCHER I EVENTIT NGA LIVEWIRE --}}
+    <script>
+        document.addEventListener('livewire:init', () => {
+            Livewire.on('printo-faturen', (event) => {
+                const data = event[0];
+
+                // Mbushim HTML-në me të dhënat e faturës reale
+                document.getElementById('fat-targa').innerText = data.targa;
+                document.getElementById('fat-status').innerText = data.status;
+                document.getElementById('fat-hyrja').innerText = data.hyrja;
+                document.getElementById('fat-ikja').innerText = data.ikja;
+                document.getElementById('fat-modaliteti').innerText = data.modaliteti;
+                document.getElementById('fat-sasia').innerText = data.sasia; // Rregulluar këtu nga sasia_fasha në sasia
+                document.getElementById('fat-metoda').innerText = data.metoda;
+                document.getElementById('fat-vlera').innerText = data.vlera;
+                document.getElementById('fat-operatori').innerText = data.operatori;
+
+                setTimeout(() => {
+                    window.print();
+                }, 300);
+            });
+        });
+    </script>
 </div>
