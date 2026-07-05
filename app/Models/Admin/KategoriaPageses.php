@@ -8,4 +8,11 @@ class KategoriaPageses extends Model
 {
     protected $guarded = [];
     protected $table = 'adm_kategoria_pageses';
+
+    public function eshteNjesiaDite(): bool
+    {
+        return $this->njesia_matjes === 'dite';
+    }
+
+
 }

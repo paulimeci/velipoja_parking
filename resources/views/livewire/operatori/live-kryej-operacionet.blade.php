@@ -211,6 +211,18 @@
                                     </td>
                                 </tr>
 
+                                {{-- NEW: Shfaqet vetëm nëse ka pasur parapagesë (transaksion i ruajtur me fashë) --}}
+                                                @if($transaksioniIRuajtur && $transaksioniIRuajtur->fashaOrare)
+                                                    <tr class="border-bottom border-light">
+                                                        <td class="text-secondary py-2 fw-medium">{{ __('Statusi') }}:</td>
+                                                        <td class="py-2 text-end">
+                            <span class="badge bg-success bg-opacity-10 text-success rounded-2 px-2 py-1 fs-12 fw-bold">
+                                {{ __('Paguar') }} [{{ $transaksioniIRuajtur->fashaOrare->nga }}-{{ $transaksioniIRuajtur->fashaOrare->ne }}]
+                            </span>
+                                                        </td>
+                                                    </tr>
+                                                @endif
+
                                 </tbody>
                             </table>
 
@@ -233,14 +245,24 @@
                                         <label class="label text-secondary fw-medium mb-1 fs-12">{{ __('Monedha e Pagesës') }}</label>
                                         <select wire:model.live="modal_id_monedha" class="form-select fs-13 py-2 rounded-3">
                                             @foreach($monedhat as $monedha)
-                                                <option value="{{ $monedha->id }}">{{ $monedha->emri }} ({{ $monedha->kodi }})</option>
+                                                <option value="{{ $monedha->id }}">{{ $monedha->kodi }}</option>
                                             @endforeach
                                         </select>
                                     </div>
                                 </div>
 
-                                {{-- NEW: Fasha Orare — shfaqet vetëm kur bëhet parapagesë --}}
-                                @if($eshteRegjistrimParaprak)
+                                {{-- KONTROLLI DINAMIK: DITË vs ORË --}}
+                                @if($kategoriaAktuale && $kategoriaAktuale->njesia_matjes === 'dite')
+                                    {{-- Shfaqet VETËM nëse njësia është DITË --}}
+                                    <div class="col-12">
+                                        <div class="form-group">
+                                            <label class="label text-secondary fw-medium mb-1 fs-12">{{ __('Sa Ditë / Netë?') }}</label>
+                                            <input type="number" step="1" min="1" wire:model.live="modal_sasia"
+                                                   class="form-control fs-13 py-2 rounded-3" placeholder="{{ __('p.sh. 2') }}">
+                                        </div>
+                                    </div>
+                                @else
+                                    {{-- Shfaqet VETËM nëse njësia është ORË (ose kur bëhet parapagesë me orë) --}}
                                     <div class="col-12">
                                         <div class="form-group">
                                             <label class="label text-secondary fw-medium mb-1 fs-12">{{ __('Fasha Orare') }}</label>
@@ -259,14 +281,14 @@
                                 <div class="col-12">
                                     <div class="form-group">
                                         <label class="label text-secondary fw-medium mb-1 fs-12">{{ __('Mënyra e Pagesës') }}</label>
-                                        <select wire:model="metoda_pageses" class="form-select fs-13 py-2 rounded-3">
+                                        <select wire:model.live="metoda_pageses" class="form-select fs-13 py-2 rounded-3">
                                             <option value="kesh">💵 {{ __('Kesh / Cash') }}</option>
                                             <option value="karte">💳 {{ __('Kartë Debiti/Krediti') }}</option>
                                         </select>
                                     </div>
                                 </div>
 
-                                {{-- VLERA E PAGESËS (editueshme, mbushet automatikisht) --}}
+                                {{-- VLERA E PAGESËS --}}
                                 <div class="col-12">
                                     <div class="form-group">
                                         <label class="label text-secondary fw-medium mb-1 fs-12">{{ __('Vlera për t\'u Paguar') }} <span class="text-danger">*</span></label>
@@ -275,8 +297,8 @@
                                                    class="form-control fs-14 fw-semibold py-2 rounded-start-3 @error('modal_vlera') is-invalid @enderror"
                                                    placeholder="0.00">
                                             <span class="input-group-text bg-light text-secondary border-start-0 fw-bold fs-12 rounded-end-3">
-                                            {{ collect($monedhat)->firstWhere('id', $modal_id_monedha)->kodi ?? 'LEK' }}
-                                        </span>
+                    {{ collect($monedhat)->firstWhere('id', $modal_id_monedha)->kodi ?? 'LEK' }}
+                </span>
                                         </div>
                                         @error('modal_vlera') <div class="invalid-feedback d-block mt-1 fs-12">{{ $message }}</div> @enderror
                                     </div>

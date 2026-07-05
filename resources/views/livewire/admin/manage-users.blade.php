@@ -19,9 +19,13 @@
         <div class="card-body p-4">
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
                 <h5 class="mb-0 fw-semibold">{{ __('Përdoruesit e Sistemit') }}</h5>
-                <div class="position-relative">
-                    <input wire:model.live.debounce.300ms="search" type="text" class="form-control" placeholder="{{ __('Kërko përdorues...') }}">
-
+                <div class="d-flex align-items-center gap-2">
+                    <div class="position-relative">
+                        <input wire:model.live.debounce.300ms="search" type="text" class="form-control" placeholder="{{ __('Kërko përdorues...') }}">
+                    </div>
+                    <button wire:click="createUser" class="btn btn-primary d-flex align-items-center gap-1">
+                        <i class="material-symbols-outlined fs-18">add</i> {{ __('Shto Përdorues') }}
+                    </button>
                 </div>
             </div>
 
@@ -42,37 +46,37 @@
             <div class="table-responsive">
                 <table class="table align-middle">
                     <thead>
-                        <tr>
-                            <th>{{ __('Emri') }}</th>
-                            <th>{{ __('Email') }}</th>
-                            <th>{{ __('Rolet') }}</th>
-                            <th class="text-end">{{ __('Veprime') }}</th>
-                        </tr>
+                    <tr>
+                        <th>{{ __('Emri') }}</th>
+                        <th>{{ __('Email') }}</th>
+                        <th>{{ __('Rolet') }}</th>
+                        <th class="text-end">{{ __('Veprime') }}</th>
+                    </tr>
                     </thead>
                     <tbody>
-                        @foreach($users as $user)
-                            <tr>
-                                <td>{{ $user->name }}</td>
-                                <td>{{ $user->email }}</td>
-                                <td>
-                                    @foreach($user->roles as $role)
-                                        <span class="badge bg-primary bg-opacity-10 text-primary">{{ $role->name }}</span>
-                                    @endforeach
-                                </td>
-                                <td class="text-end">
-                                    <button wire:click="editUser({{ $user->id }})" class="btn btn-sm btn-outline-primary">
-                                        <i class="material-symbols-outlined fs-18">edit</i> {{ __('Menaxho Rolet') }}
-                                    </button>
-                                    @can('admin.delete-users')
-                                        @if($user->id !== auth()->id() && $user->email !== 'paulin.meci@gmail.com')
-                                            <button wire:click="deleteUser({{ $user->id }})" wire:confirm="{{ __('A jeni i sigurt që dëshironi ta fshini këtë përdorues?') }}" class="btn btn-sm btn-outline-danger ms-2">
-                                                <i class="material-symbols-outlined fs-18">delete</i> {{ __('Fshij') }}
-                                            </button>
-                                        @endif
-                                    @endcan
-                                </td>
-                            </tr>
-                        @endforeach
+                    @foreach($users as $user)
+                        <tr>
+                            <td>{{ $user->name }}</td>
+                            <td>{{ $user->email }}</td>
+                            <td>
+                                @foreach($user->roles as $role)
+                                    <span class="badge bg-primary bg-opacity-10 text-primary">{{ $role->name }}</span>
+                                @endforeach
+                            </td>
+                            <td class="text-end">
+                                <button wire:click="editUser({{ $user->id }})" class="btn btn-sm btn-outline-primary">
+                                    <i class="material-symbols-outlined fs-18">edit</i> {{ __('Menaxho / Edito') }}
+                                </button>
+                                @can('admin.delete-users')
+                                    @if($user->id !== auth()->id() && $user->email !== 'paulin.meci@gmail.com')
+                                        <button wire:click="deleteUser({{ $user->id }})" wire:confirm="{{ __('A jeni i sigurt që dëshironi ta fshini këtë përdorues?') }}" class="btn btn-sm btn-outline-danger ms-2">
+                                            <i class="material-symbols-outlined fs-18">delete</i> {{ __('Fshij') }}
+                                        </button>
+                                    @endif
+                                @endcan
+                            </td>
+                        </tr>
+                    @endforeach
                     </tbody>
                 </table>
             </div>
@@ -88,12 +92,36 @@
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content border-0 rounded-3 shadow">
                     <div class="modal-header">
-                        <h5 class="modal-title">{{ __('Menaxho Rolet për') }} {{ $name }}</h5>
+                        <h5 class="modal-title">
+                            {{ $userId ? __('Edito Përdoruesin:') . ' ' . $name : __('Krijo Përdorues të Ri') }}
+                        </h5>
                         <button type="button" wire:click="$set('showUserModal', false)" class="btn-close"></button>
                     </div>
                     <div class="modal-body">
                         <div class="mb-3">
-                            <label class="form-label fw-medium">{{ __('Zgjidh Rolet') }}</label>
+                            <label class="form-label fw-medium">{{ __('Emri Plotë') }}</label>
+                            <input type="text" class="form-control @error('name') is-invalid @enderror" wire:model="name">
+                            @error('name') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-medium">{{ __('Email Adresa') }}</label>
+                            <input type="email" class="form-control @error('email') is-invalid @enderror" wire:model="email">
+                            @error('email') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-medium">
+                                {{ __('Fjalëkalimi') }}
+                                @if($userId) <small class="text-muted">({{ __('Lere bosh nëse nuk dëshiron ta ndryshosh') }})</small> @endif
+                            </label>
+                            <input type="password" class="form-control @error('password') is-invalid @enderror" wire:model="password">
+                            @error('password') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-medium text-danger">{{ __('Zgjidh Rolet (Admin, Manager, Agent...)') }}</label>
+                            @error('selectedRoles') <div class="text-danger small mb-2">{{ $message }}</div> @enderror
                             <div class="row">
                                 @foreach($roles as $role)
                                     <div class="col-6 mb-2">

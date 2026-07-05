@@ -14,4 +14,8 @@ class TransaksioniOperacionit extends Model
     public function prenotimi() :BelongsTo {
         return $this->belongsTo(KategoriaPageses::class, 'id_prenotimit');
     }
+
+    public function fashaOrare () :BelongsTo {
+        return $this->belongsTo(OretCmimi::class, 'id_fashes_orare');
+    }
 }
