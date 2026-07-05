@@ -13,7 +13,7 @@ use Livewire\Component;
 
 class LiveKryejOperacionet extends Component
 {
-    use AuthorizesRequests;
+    use AuthorizesRequests, Sweet;
 
     // Vetitë e formës
     public $targa;
