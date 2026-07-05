@@ -44,6 +44,14 @@
                     </a>
                 </li>
             @endcan
+ @can('admin.manage-raportet')
+                <li class="menu-item">
+                    <a href="{{ route('admin.bilanci.transaksioneve') }}" class="menu-link {{ request()->routeIs('operatori.operacionet') ? 'active' : '' }}">
+                        <span class="material-symbols-outlined menu-icon">rocket_launch</span>
+                        <span class="title">Raportet</span>
+                    </a>
+                </li>
+            @endcan
 
 
 

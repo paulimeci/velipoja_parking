@@ -22,7 +22,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('admin/konfiguo/oret', LiveAdminKonfiguroOret::class)->name('admin.manage.oret');
     Route::get('operatori/procedimet', LiveKryejOperacionet::class)->name('admin.manage.oret');
-    Route::get('admin/transaksionet', LiveBilanciTransaksioneve::class)->name('admin.bilanci.transaksioneve');
 
     Route::middleware(['can:admin.konfiguro-oret'])->group(function () {
         Route::get('admin/konfiguo/oret', LiveAdminKonfiguroOret::class)->name('admin.manage.oret');
@@ -34,6 +33,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::middleware(['can:admin.manage-roles'])->group(function () {
         Route::get('admin/rolet', ManageRoles::class)->name('admin.roles');
+    });
+    Route::middleware(['can:admin.manage-raportet'])->group(function () {
+        Route::get('admin/transaksionet', LiveBilanciTransaksioneve::class)->name('admin.bilanci.transaksioneve');
+
     });
 
     Route::middleware(['can:manage all'])->group(function () {
