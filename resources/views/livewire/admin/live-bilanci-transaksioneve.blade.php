@@ -95,18 +95,7 @@
                  ════════════════════════════════════════ --}}
             <div class="default-table-area">
                 <div class="table-responsive">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <p class="text-secondary fs-13 mb-0">
-                            {{ __('Periudha') }}: <strong>{{ $fillimi->format('d/m/Y') }} - {{ $fundi->format('d/m/Y') }}</strong>
-                        </p>
 
-                        <button type="button"
-                                wire:click="eksportoRaportinNeExcel"
-                                class="btn btn-success border-0 fw-bold fs-14 py-2 px-4 rounded-3 d-inline-flex align-items-center gap-1">
-                            <span wire:loading wire:target="eksportoRaportinNeExcel" class="spinner-border spinner-border-sm"></span>
-                            <i class="ri-file-excel-2-line fs-16"></i> {{ __('Eksporto Raportin') }}
-                        </button>
-                    </div>
                     <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                         <div class="d-flex align-items-center gap-2">
                             <p class="text-secondary fs-13 mb-0">

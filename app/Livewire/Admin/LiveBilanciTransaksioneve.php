@@ -48,24 +48,16 @@ class LiveBilanciTransaksioneve extends Component
         $this->dataEPerzgjedhur = \Carbon\Carbon::parse($data)->format('d/m/Y');
 
         $this->detajetMjeteve = \App\Models\Admin\TransaksioniOperacionit::query()
-            // 1. Lidhja me operacionet kryesore
             ->join('adm_operacionet', 'adm_transaksioni_operacionit.id_operacionit', '=', 'adm_operacionet.id')
-
-            // 2. Lidhja me tabelën e monedhave
             ->join('adm_monedhat', 'adm_transaksioni_operacionit.monedha', '=', 'adm_monedhat.id')
-
-            // 3. Lidhja me kategorinë e pagesës
             ->join('adm_kategoria_pageses', 'adm_transaksioni_operacionit.id_prenotimit', '=', 'adm_kategoria_pageses.id')
-
-            // 4. Lidhja me tabelën users për emrin e operatorit
             ->join('users', 'adm_operacionet.id_operatori', '=', 'users.id')
-
-            // 5. RREGULLIMI: Lidhja e saktë me tabelën adm_oret_cmimi
             ->leftJoin('adm_oret_cmimi', 'adm_transaksioni_operacionit.id_fashes_orare', '=', 'adm_oret_cmimi.id')
-
-            // Filtri për datën e ikjes
             ->whereRaw('DATE(adm_operacionet.ikja) = ?', [$data])
-
+            // NEW: i njëjti filtër operatori si te tabela kryesore dhe eksporti
+            ->when($this->operatoriZgjedhur, function ($query) {
+                $query->where('adm_operacionet.id_operatori', $this->operatoriZgjedhur);
+            })
             ->select([
                 'adm_operacionet.targa',
                 'adm_operacionet.nisja as koha_hyrjes',
@@ -76,8 +68,6 @@ class LiveBilanciTransaksioneve extends Component
                 'adm_kategoria_pageses.kategoria as lloji_qendrimit',
                 'adm_kategoria_pageses.njesia_matjes',
                 'users.name as emri_operatorit',
-
-                // Marrim vlerat 'nga' dhe 'ne' nga tabela e saktë adm_oret_cmimi
                 'adm_oret_cmimi.nga as fasha_nga',
                 'adm_oret_cmimi.ne as fasha_ne'
             ])
