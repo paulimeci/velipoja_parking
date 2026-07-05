@@ -9,19 +9,32 @@ use App\Livewire\Admin\ManageRoles;
 use App\Livewire\Admin\ManageUsers;
 use App\Livewire\Operatori\LiveKryejOperacionet;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 
 Route::view('/', 'welcome')->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::view('dashboard', 'dashboard')->name('dashboard');
+
+    // KETU BEHET REDIRECT DINAMIK BAZUAR NE PERMISSIONS/ROLET E SPATIE
+    Route::get('dashboard', function () {
+        $user = Auth::user();
+
+        if ($user->can('admin.dashboard') || $user->hasRole('admin')) {
+            return redirect()->route('admin.dashboard');
+        }
+
+        if ($user->can('operatori.kryej-operacionet') || $user->hasRole('user')) {
+            return redirect()->route('operatori.operacionet');
+        }
+
+        // Default nëse nuk ka asnjë nga këto (opsionale)
+        return redirect()->route('admin.change-password');
+    })->name('dashboard');
 
     // Admin Routes
     Route::middleware(['can:admin.dashboard'])->group(function () {
         Route::get('/admin/dashboard', LiveAdminDashboard::class)->name('admin.dashboard');
     });
-
-    Route::get('admin/konfiguo/oret', LiveAdminKonfiguroOret::class)->name('admin.manage.oret');
-    Route::get('operatori/procedimet', LiveKryejOperacionet::class)->name('admin.manage.oret');
 
     Route::middleware(['can:admin.konfiguro-oret'])->group(function () {
         Route::get('admin/konfiguo/oret', LiveAdminKonfiguroOret::class)->name('admin.manage.oret');
@@ -34,9 +47,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware(['can:admin.manage-roles'])->group(function () {
         Route::get('admin/rolet', ManageRoles::class)->name('admin.roles');
     });
-    Route::middleware(['can:admin.manage-raportet'])->group(function () {
-        Route::get('admin/transaksionet', LiveBilanciTransaksioneve::class)->name('admin.bilanci.transaksioneve');
 
+    Route::middleware(['can:admin.manage-raportet'])->group(function () {
+        // Kjo është tabela e bilancit që bëmë bashkë me eksportin Excel
+        Route::get('admin/transaksionet', LiveBilanciTransaksioneve::class)->name('admin.bilanci.transaksioneve');
     });
 
     Route::middleware(['can:manage all'])->group(function () {

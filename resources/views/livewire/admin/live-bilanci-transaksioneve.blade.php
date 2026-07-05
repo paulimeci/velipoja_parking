@@ -88,15 +88,49 @@
 
             </div>
 
-            <p class="text-secondary fs-13 mb-3">
-                {{ __('Periudha') }}: <strong>{{ $fillimi->format('d/m/Y') }} - {{ $fundi->format('d/m/Y') }}</strong>
-            </p>
+
 
             {{-- ═══════════════════════════════════════
                   TABELA E RAPORTIT
                  ════════════════════════════════════════ --}}
             <div class="default-table-area">
                 <div class="table-responsive">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <p class="text-secondary fs-13 mb-0">
+                            {{ __('Periudha') }}: <strong>{{ $fillimi->format('d/m/Y') }} - {{ $fundi->format('d/m/Y') }}</strong>
+                        </p>
+
+                        <button type="button"
+                                wire:click="eksportoRaportinNeExcel"
+                                class="btn btn-success border-0 fw-bold fs-14 py-2 px-4 rounded-3 d-inline-flex align-items-center gap-1">
+                            <span wire:loading wire:target="eksportoRaportinNeExcel" class="spinner-border spinner-border-sm"></span>
+                            <i class="ri-file-excel-2-line fs-16"></i> {{ __('Eksporto Raportin') }}
+                        </button>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <p class="text-secondary fs-13 mb-0">
+                                {{ __('Periudha') }}: <strong>{{ $fillimi->format('d/m/Y') }} - {{ $fundi->format('d/m/Y') }}</strong>
+                            </p>
+                        </div>
+
+                        <div class="d-flex align-items-center gap-2">
+                            {{-- NEW: Dropdown filtri sipas Operatorit --}}
+                            <select wire:model.live="operatoriZgjedhur" class="form-select form-select-sm rounded-3" style="min-width: 180px;">
+                                <option value="">{{ __('Të gjithë Operatorët') }}</option>
+                                @foreach($operatoret as $operatori)
+                                    <option value="{{ $operatori->id }}">{{ $operatori->name }}</option>
+                                @endforeach
+                            </select>
+
+                            <button type="button"
+                                    wire:click="eksportoRaportinNeExcel"
+                                    class="btn btn-success border-0 fw-bold fs-14 py-2 px-4 rounded-3 d-inline-flex align-items-center gap-1">
+                                <span wire:loading wire:target="eksportoRaportinNeExcel" class="spinner-border spinner-border-sm"></span>
+                                <i class="ri-file-excel-2-line fs-16"></i> {{ __('Eksporto Raportin') }}
+                            </button>
+                        </div>
+                    </div>
                     <table class="table align-middle table-hover">
                         <thead>
                         <tr>
@@ -187,6 +221,7 @@
                                         <th scope="col">Hyrja</th>
                                         <th scope="col">Ikja</th>
                                         <th scope="col">Lloji Qëndrimit</th>
+                                        <th scope="col">Operatori</th> {{-- NEW COLUMN --}}
                                         <th scope="col" class="text-end pe-4 py-3">Pagesa</th>
                                     </tr>
                                     </thead>
@@ -195,9 +230,9 @@
                                         <tr>
                                             <td class="ps-4 py-3">
                                                 <div class="d-inline-flex align-items-center bg-white border border-dark border-opacity-75 rounded shadow-sm px-3 py-1" style="height: 34px;">
-                                                    <span class="fs-15 fw-black text-dark font-monospace text-uppercase" style="letter-spacing: 0.8px;">
-                                                        {{ $mjeti['targa'] }}
-                                                    </span>
+                    <span class="fs-15 fw-black text-dark font-monospace text-uppercase" style="letter-spacing: 0.8px;">
+                        {{ $mjeti['targa'] }}
+                    </span>
                                                 </div>
                                             </td>
                                             <td class="text-dark py-3">
@@ -219,9 +254,25 @@
                                                 </div>
                                             </td>
                                             <td class="py-3">
-                                                <span class="badge bg-indigo-subtle text-indigo border border-indigo-subtle rounded-pill fs-13 fw-semibold px-3 py-1.5" style="background-color: #e0e7ff; color: #4338ca; border-color: #c7d2fe;">
-                                                    {{ $mjeti['lloji_qendrimit'] }}
-                                                </span>
+                                                <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-indigo-subtle text-indigo border border-indigo-subtle rounded-pill fs-13 fw-semibold px-3 py-1.5"
+              style="background-color: #e0e7ff; color: #4338ca; border-color: #c7d2fe;">
+            {{ $mjeti['lloji_qendrimit'] }}
+        </span>
+
+                                                    @if($mjeti['njesia_matjes'] === 'dite' && !empty($mjeti['sasia']))
+                                                        <span class="badge bg-warning bg-opacity-10 text-warning-emphasis border border-warning-subtle rounded-3 fs-12 fw-bold font-monospace px-2 py-1">
+                x{{ $mjeti['sasia'] }} {{ $mjeti['sasia'] > 1 ? __('Ditë') : __('Ditë') }}
+            </span>
+                                                    @endif
+                                                </div>
+                                            </td>
+                                            {{-- NEW TD: Shfaq emrin e operatorit me një ikonë personi --}}
+                                            <td class="py-3 text-secondary fw-medium">
+                                                <div class="d-flex align-items-center gap-1">
+                                                    <i class="ri-user-received-2-line text-primary opacity-75 fs-16"></i>
+                                                    <span>{{ $mjeti['emri_operatorit'] ?? __('Pa emër') }}</span>
+                                                </div>
                                             </td>
                                             <td class="text-end pe-4 py-3 fw-bold text-dark fs-16">
                                                 <span class="text-success-emphasis font-monospace fw-black">{{ number_format($mjeti['shuma'], 2) }}</span>
@@ -244,6 +295,13 @@
 
                     {{-- FOOTER MODAL --}}
                     <div class="modal-footer bg-white border-top border-light-subtle py-3 px-4">
+                        <button type="button"
+                                wire:click="eksportoDetajetNeExcel"
+                                class="btn btn-success border-0 fw-bold fs-14 py-2 px-4 rounded-3 d-inline-flex align-items-center gap-1">
+                            <span wire:loading wire:target="eksportoDetajetNeExcel" class="spinner-border spinner-border-sm"></span>
+                            <i class="ri-file-excel-2-line fs-16"></i> {{ __('Eksporto në Excel') }}
+                        </button>
+
                         <button type="button" class="btn btn-light border border-light-subtle text-secondary fw-bold fs-14 py-2 px-4 rounded-3" wire:click="mbyllModalin()">
                             Mbyll Dritaren
                         </button>

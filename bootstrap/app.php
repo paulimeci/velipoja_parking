@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [
             SetLocale::class,
+            'redirect.role' => \App\Http\Middleware\RedirectByRole::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
