@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->integer('id_operacionit');
             $table->integer('id_prenotimit');
+            $table->integer('id_fashes_orare');
             $table->enum('status_pagesa', ['paguar', 'jo_paguar'])->default('jo_paguar');
             $table->integer('monedha');
             $table->decimal('vlera', 15, 2)->default(0.00);

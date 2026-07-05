@@ -7,7 +7,7 @@ use Carbon\Carbon;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use App\Models\Admin\KategoriaPageses;
 use App\Models\Admin\Monedhat;
-use App\Models\Admin\Operacionet; // <-- Importojmë Modelin e ri këtu
+use App\Models\Admin\Operacionet;
 use Livewire\Component;
 
 class LiveKryejOperacionet extends Component
@@ -20,7 +20,7 @@ class LiveKryejOperacionet extends Component
     public $id_monedha;
     public $eshte_paguar = false;
     public $shuma_paguar;
-    public $kerkoTarge = ''; // Ruante tekstin e kërkimit
+    public $kerkoTarge = '';
     public $klickedTarga = false;
     public $mjetiZgjedhur = null;
     public $koha_qendrimit = '';
@@ -28,6 +28,11 @@ class LiveKryejOperacionet extends Component
     public $modal_id_kategoria;
     public $modal_id_monedha;
     public $modal_vlera = '';
+    public $modal_id_fasha;
+
+    // NEW: dallon nëse modali u hap për "pagesë paraprake" (mjeti mbetet prezent)
+    // apo për mbylljen reale të operacionit (mjeti largohet)
+    public $eshteRegjistrimParaprak = false;
 
     public function mount()
     {
@@ -42,38 +47,128 @@ class LiveKryejOperacionet extends Component
         }
     }
 
+    // ════════════════════════════════════════════════
+    // NEW: Trigger-i kryesor — thirret automatikisht kur ndryshon $eshte_paguar
+    // (falë wire:model.live="eshte_paguar" në blade)
+    // ════════════════════════════════════════════════
+    public function updatedEshtePaguar($value)
+    {
+        if (!$value) {
+            return; // nëse e çekon, nuk bëjmë asgjë
+        }
+
+        // Duhet targa e plotësuar përpara se të vazhdojmë
+        $this->validate([
+            'targa' => 'required|string|max:20',
+        ], [
+            'targa.required' => 'Ju lutem vendosni targën e makinës para se ta shënoni si të paguar.',
+        ]);
+
+        $targaPastruar = strtoupper(str_replace(' ', '', $this->targa));
+
+        $ekziston = Operacionet::where('status', 'prezent')
+            ->whereRaw("REPLACE(UPPER(targa), ' ', '') = ?", [$targaPastruar])
+            ->exists();
+
+        if ($ekziston) {
+            $this->addError('targa', 'Kjo targë është tashmë e regjistruar si "Prezent" në parking.');
+            $this->eshte_paguar = false;
+            return;
+        }
+
+        // Regjistrojmë menjëherë mjetin si "prezent"
+        $operacioni = Operacionet::create([
+            'targa'  => $targaPastruar,
+            'nisja'  => now(),
+            'ikja'   => null,
+            'status' => 'prezent',
+        ]);
+
+        // Pastrojmë formën e regjistrimit për mjetin tjetër
+        $this->reset('targa', 'eshte_paguar', 'shuma_paguar');
+
+        // Hapim modalin e pagesës në "modë paraprak" (pa e mbyllur operacionin)
+        $this->eshteRegjistrimParaprak = true;
+        $this->inicializoModalinPerOperacionin($operacioni);
+
+        session()->flash('success', 'Mjeti u regjistrua si Prezent. Vazhdo me pagesën paraprake më poshtë.');
+    }
+
+    // ════════════════════════════════════════════════
+    // Hapja e modalit nga lista e "Mjeteve Prezent" (mbyllje reale)
+    // ════════════════════════════════════════════════
     public function shfaqModalPagesen($id)
     {
-        // Hiqim ->with(['kategoria','monedha']) — Operacionet s'ka këto relacione
-        $this->mjetiZgjedhur = Operacionet::find($id);
+        $operacioni = Operacionet::find($id);
 
-        if ($this->mjetiZgjedhur) {
+        if ($operacioni) {
+            $this->eshteRegjistrimParaprak = false; // kjo është mbyllja reale
+            $this->inicializoModalinPerOperacionin($operacioni);
+        }
+    }
+
+    // ════════════════════════════════════════════════
+    // NEW: Logjika e përbashkët për të inicializuar modalin
+    // (përdoret dhe nga pagesa paraprake dhe nga mbyllja reale)
+    // ════════════════════════════════════════════════
+    private function inicializoModalinPerOperacionin(Operacionet $operacioni)
+    {
+        $this->mjetiZgjedhur = $operacioni;
+
+        // NEW: kontrollojmë nëse ekziston tashmë një transaksion (nga parapagesa)
+        $transaksioniEkzistues = TransaksioniOperacionit::where('id_operacionit', $operacioni->id)->first();
+
+        if ($this->eshteRegjistrimParaprak) {
+            // Modë parapagese: vendosim default-et normale
             $sherbimiDefault = KategoriaPageses::where('is_default', 1)->first();
             $this->modal_id_kategoria = $sherbimiDefault ? $sherbimiDefault->id : null;
 
             $monedhaDefault = Monedhat::where('kodi', 'ALL')->first();
             $this->modal_id_monedha = $monedhaDefault ? $monedhaDefault->id : null;
 
-            $hyrja = Carbon::parse($this->mjetiZgjedhur->nisja);
-            $tani  = Carbon::now();
-
-            $diferencaDite   = (int) $hyrja->diffInDays($tani);
-            $diferencaOre    = (int) ($hyrja->diffInHours($tani) % 24);
-            $diferencaMinuta = (int) ($hyrja->diffInMinutes($tani) % 60);
-
-            $pjeset = [];
-            if ($diferencaDite >= 1) { $pjeset[] = $diferencaDite . ' ditë'; }
-            if ($diferencaOre > 0) { $pjeset[] = $diferencaOre . ' orë'; }
-            if ($diferencaMinuta > 0 || empty($pjeset)) { $pjeset[] = $diferencaMinuta . ' min'; }
-
-            if (count($pjeset) > 1) {
-                $fundi = array_pop($pjeset);
-                $this->koha_qendrimit = implode(', ', $pjeset) . ' e ' . $fundi;
-            } else {
-                $this->koha_qendrimit = $pjeset[0];
-            }
+            $fashaEPare = \App\Models\Admin\OretCmimi::where('id_kategoria_rezervimit', $this->modal_id_kategoria)
+                ->orderBy('nga')
+                ->first();
+            $this->modal_id_fasha = $fashaEPare ? $fashaEPare->id : null;
 
             $this->llogaritCmiminAutomatik();
+        } elseif ($transaksioniEkzistues) {
+            // NEW: Mbyllje reale ME parapagesë ekzistuese — mbushim modalin me të dhënat e ruajtura
+            $this->modal_id_kategoria = $transaksioniEkzistues->id_prenotimit;
+            $this->modal_id_monedha   = $transaksioniEkzistues->monedha;
+            $this->modal_id_fasha     = $transaksioniEkzistues->id_fashes_orare;
+            $this->modal_vlera        = $transaksioniEkzistues->vlera;
+        } else {
+            // Mbyllje reale PA parapagesë (rast direkt) — sillet si më parë, auto-llogaritje nga koha
+            $sherbimiDefault = KategoriaPageses::where('is_default', 1)->first();
+            $this->modal_id_kategoria = $sherbimiDefault ? $sherbimiDefault->id : null;
+
+            $monedhaDefault = Monedhat::where('kodi', 'ALL')->first();
+            $this->modal_id_monedha = $monedhaDefault ? $monedhaDefault->id : null;
+
+            $this->modal_id_fasha = null;
+
+            $this->llogaritCmiminAutomatik();
+        }
+
+        // Llogaritja e kohës së qëndrimit (gjithmonë, për shfaqje informative)
+        $hyrja = Carbon::parse($operacioni->nisja);
+        $tani  = Carbon::now();
+
+        $diferencaDite   = (int) $hyrja->diffInDays($tani);
+        $diferencaOre    = (int) ($hyrja->diffInHours($tani) % 24);
+        $diferencaMinuta = (int) ($hyrja->diffInMinutes($tani) % 60);
+
+        $pjeset = [];
+        if ($diferencaDite >= 1) { $pjeset[] = $diferencaDite . ' ditë'; }
+        if ($diferencaOre > 0) { $pjeset[] = $diferencaOre . ' orë'; }
+        if ($diferencaMinuta > 0 || empty($pjeset)) { $pjeset[] = $diferencaMinuta . ' min'; }
+
+        if (count($pjeset) > 1) {
+            $fundi = array_pop($pjeset);
+            $this->koha_qendrimit = implode(', ', $pjeset) . ' e ' . $fundi;
+        } else {
+            $this->koha_qendrimit = $pjeset[0];
         }
 
         $this->klickedTarga = true;
@@ -85,20 +180,31 @@ class LiveKryejOperacionet extends Component
             return;
         }
 
-        $hyrja = Carbon::parse($this->mjetiZgjedhur->nisja);
-        $tani  = Carbon::now();
+        if ($this->modal_id_fasha) {
+            // Fasha është zgjedhur (manualisht ose e ruajtur) — çmimi vjen prej saj
+            $fashaOrare = \App\Models\Admin\OretCmimi::find($this->modal_id_fasha);
+        } elseif (!$this->eshteRegjistrimParaprak) {
+            // Mbyllje direkte pa fashë të zgjedhur — auto nga koha reale
+            $hyrja = Carbon::parse($this->mjetiZgjedhur->nisja);
+            $tani  = Carbon::now();
 
-        $totaliMinutaveReal = $hyrja->diffInMinutes($tani);
-        $oreTeqendrimit = max($totaliMinutaveReal / 60, 0.01);
+            $totaliMinutaveReal = $hyrja->diffInMinutes($tani);
+            $oreTeqendrimit = max($totaliMinutaveReal / 60, 0.01);
 
-        $fashaOrare = \App\Models\Admin\OretCmimi::where('id_kategoria_rezervimit', $this->modal_id_kategoria)
-            ->whereRaw('? BETWEEN `nga` AND `ne`', [$oreTeqendrimit])
-            ->first();
-
-        if (!$fashaOrare) {
             $fashaOrare = \App\Models\Admin\OretCmimi::where('id_kategoria_rezervimit', $this->modal_id_kategoria)
-                ->orderBy('ne', 'desc')
+                ->whereRaw('? BETWEEN `nga` AND `ne`', [$oreTeqendrimit])
                 ->first();
+
+            if (!$fashaOrare) {
+                $fashaOrare = \App\Models\Admin\OretCmimi::where('id_kategoria_rezervimit', $this->modal_id_kategoria)
+                    ->orderBy('ne', 'desc')
+                    ->first();
+            }
+
+            $this->modal_id_fasha = $fashaOrare?->id;
+        } else {
+            $this->modal_vlera = '';
+            return;
         }
 
         $cmimiMonedhes = $fashaOrare
@@ -108,17 +214,31 @@ class LiveKryejOperacionet extends Component
         $this->modal_vlera = $cmimiMonedhes ? $cmimiMonedhes->vlera : '';
     }
 
+    public function updatedModalIdFasha()
+    {
+        $this->llogaritCmiminAutomatik();
+    }
+
+// NEW
+
+
     public function updatedModalIdMonedha()
     {
         $this->llogaritCmiminAutomatik();
     }
 
-// Ri-llogarit çmimin nëse përdoruesi ndryshon Shërbimin nga dropdown-i
     public function updatedModalIdKategoria()
     {
+        $fashaEPare = \App\Models\Admin\OretCmimi::where('id_kategoria_rezervimit', $this->modal_id_kategoria)
+            ->orderBy('nga')
+            ->first();
+        $this->modal_id_fasha = $fashaEPare ? $fashaEPare->id : null;
+
         $this->llogaritCmiminAutomatik();
     }
-
+    // ════════════════════════════════════════════════
+    // Ruajtja e transaksionit — tani vepron ndryshe në bazë të flag-ut
+    // ════════════════════════════════════════════════
     public function ruajTransaksionin()
     {
         $this->validate([
@@ -133,60 +253,55 @@ class LiveKryejOperacionet extends Component
             return;
         }
 
-        // ════════════════════════════════════════════════
-        // 1) RUAJTJA E TRANSAKSIONIT (adm_transaksioni_operacionit)
-        // ════════════════════════════════════════════════
-        TransaksioniOperacionit::create([
-            'id_operacionit' => $this->mjetiZgjedhur->id,   // lidhja me mjetin/operacionin
-            'id_prenotimit'  => $this->modal_id_kategoria,  // shërbimi/kategoria e zgjedhur në modal
-            'status_pagesa'  => 'paguar',                   // mbyllja e operacionit nënkupton pagesë
-            'monedha'        => $this->modal_id_monedha,
-            'vlera'          => $this->modal_vlera,
-        ]);
+        $tedhenatTransaksionit = [
+            'id_operacionit'  => $this->mjetiZgjedhur->id,
+            'id_prenotimit'   => $this->modal_id_kategoria,
+            'id_fashes_orare' => $this->modal_id_fasha, // NEW
+            'status_pagesa'   => 'paguar',
+            'monedha'         => $this->modal_id_monedha,
+            'vlera'           => $this->modal_vlera,
+        ];
 
-        // ════════════════════════════════════════════════
-        // 2) MBYLLJA E OPERACIONIT (adm_operacionet)
-        // ════════════════════════════════════════════════
-        $this->mjetiZgjedhur->update([
-            'ikja'   => now(),
-            'status' => 'larguar',
-        ]);
+        // NEW: nëse ekziston tashmë një transaksion për këtë operacion (nga parapagesa), e përditësojmë
+        $transaksioniEkzistues = TransaksioniOperacionit::where('id_operacionit', $this->mjetiZgjedhur->id)->first();
 
-        // Mbyllim modalin dhe pastrojmë state-in
+        if ($transaksioniEkzistues) {
+            $transaksioniEkzistues->update($tedhenatTransaksionit);
+        } else {
+            TransaksioniOperacionit::create($tedhenatTransaksionit);
+        }
+
+        if ($this->eshteRegjistrimParaprak) {
+            session()->flash('success', 'Pagesa u regjistrua paraprakisht. Mjeti mbetet Prezent në parking.');
+        } else {
+            $this->mjetiZgjedhur->update([
+                'ikja'   => now(),
+                'status' => 'larguar',
+            ]);
+            session()->flash('success', 'Operacioni u mbyll me sukses!');
+        }
+
         $this->klickedTarga = false;
         $this->mjetiZgjedhur = null;
         $this->koha_qendrimit = '';
         $this->modal_vlera = '';
-
-        session()->flash('success', 'Operacioni u mbyll me sukses!');
+        $this->modal_id_fasha = null;
+        $this->eshteRegjistrimParaprak = false;
     }
 
+    // Regjistrimi normal (pa pagesë) mbetet i njëjtë
     public function ruajOperacionin()
     {
-        // Pastrojmë targën: heqim hapësirat dhe e kthejmë me shkronja të mëdha
         $targaPastruar = strtoupper(str_replace(' ', '', $this->targa));
 
-        // Validimi i fushave
         $rules = [
             'targa' => 'required|string|max:20',
-            /* 'id_kategoria' => 'required',
-            'id_monedha'   => 'required', */
         ];
 
-        if ($this->eshte_paguar) {
-            $rules['shuma_paguar'] = 'required|numeric|min:0';
-        }
-
         $this->validate($rules, [
-            'targa.required'        => 'Ju lutem vendosni targën e makinës.',
-            'id_kategoria.required' => 'Ju lutem zgjidhni shërbimin.',
-            'id_monedha.required'   => 'Ju lutem zgjidhni monedhën.',
-            'shuma_paguar.required' => 'Ju lutem vendosni shifrën e paguar.',
+            'targa.required' => 'Ju lutem vendosni targën e makinës.',
         ]);
 
-        // ════════════════════════════════════════════════
-        // KONTROLLI: A ËSHTË MJETI TASHMË "PREZENT" NË PARKING?
-        // ════════════════════════════════════════════════
         $ekziston = Operacionet::where('status', 'prezent')
             ->whereRaw("REPLACE(UPPER(targa), ' ', '') = ?", [$targaPastruar])
             ->exists();
@@ -196,45 +311,43 @@ class LiveKryejOperacionet extends Component
             return;
         }
 
-        // ════════════════════════════════════════════════
-        // RUAJTJA NË DATABAZË (Tabela: adm_operacionet)
-        // ════════════════════════════════════════════════
         Operacionet::create([
-            'targa'  => $targaPastruar, // E ruajmë të pastruar (pa hapësira, me shkronja të mëdha)
+            'targa'  => $targaPastruar,
             'nisja'  => now(),
             'ikja'   => null,
             'status' => 'prezent',
         ]);
 
-        // TODO: Këtu më vonë do shtohet logjika e dytë për ruajtjen te tabela e pagesave
-        // nëse $this->eshte_paguar është true.
-
         session()->flash('success', 'Mjeti u regjistrua me sukses si Prezent!');
 
-        // Resetojmë fushat për operacionin e radhës
         $this->reset('targa', 'shuma_paguar', 'eshte_paguar');
 
-        // Rikthejmë kategorinë default
         $kategoriaDefault = KategoriaPageses::where('is_default', 1)->first();
         if ($kategoriaDefault) {
             $this->id_kategoria = $kategoriaDefault->id;
         }
     }
 
-
     public function render()
     {
-        // Filtrojmë mjetet prezent në bazë të asaj që shkruhet te searchbox
         $mjetePrezent = Operacionet::where('status', 'prezent')
             ->when($this->kerkoTarge, function($query) {
                 $query->where('targa', 'like', '%' . strtoupper($this->kerkoTarge) . '%');
             })
             ->get();
 
+        // NEW: fashat orare gjithmonë sipas kategorisë së zgjedhur në modal
+        $fashatOrare = $this->modal_id_kategoria
+            ? \App\Models\Admin\OretCmimi::where('id_kategoria_rezervimit', $this->modal_id_kategoria)
+                ->orderBy('nga')
+                ->get()
+            : collect();
+
         return view('livewire.operatori.live-kryej-operacionet', [
             'kategorite'   => KategoriaPageses::all(),
             'monedhat'     => Monedhat::all(),
-            'mjetePrezent' => $mjetePrezent, // ia kalojmë listën e filtruar frontend-it
+            'mjetePrezent' => $mjetePrezent,
+            'fashatOrare'  => $fashatOrare,
         ])->layout('layouts.dashboard.app');
     }
 }

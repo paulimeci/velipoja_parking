@@ -19,10 +19,10 @@
 
                     <div class="tab-content" id="myTabContent">
                         <div class="tab-pane fade show active" id="preview-tab-pane" role="tabpanel" aria-labelledby="preview-tab" tabindex="0">
+                            {{-- ═══ Forma e regjistrimit — thjeshtuar, pa fusha dinamike inline ═══ --}}
                             <form wire:submit.prevent="ruajOperacionin">
                                 <div class="row align-items-end">
 
-                                    {{-- INPUT 1: TARGA E MAKINËS (Gjithmonë e dukshme) --}}
                                     <div class="col-lg-6">
                                         <div class="form-group mb-4">
                                             <label class="label text-secondary fw-medium mb-2">{{ __('Targa e Makinës') }} <span class="text-danger">*</span></label>
@@ -33,11 +33,11 @@
                                         </div>
                                     </div>
 
-                                    {{-- CHECKBOX "PAGUAR" (Gjithmonë i dukshëm) --}}
                                     <div class="col-lg-6">
                                         <div class="form-group mb-4 d-flex align-items-center h-60">
                                             <div class="form-check form-switch custom-switch">
-                                                <input class="form-check-input" type="checkbox" role="switch" id="paguarSwitch" wire:model.live="eshte_paguar" style="width: 2.5em; height: 1.25em; cursor: pointer;">
+                                                <input class="form-check-input" type="checkbox" role="switch" id="paguarSwitch"
+                                                       wire:model.live="eshte_paguar" style="width: 2.5em; height: 1.25em; cursor: pointer;">
                                                 <label class="form-check-input-label text-secondary fw-medium ms-2" for="paguarSwitch" style="cursor: pointer;">
                                                     {{ __('Është Paguar?') }}
                                                 </label>
@@ -45,53 +45,6 @@
                                         </div>
                                     </div>
 
-                                    {{-- FUSHAT DINAMIKE (Shfaqen vetëm kur çekon switch-in) --}}
-                                    @if($eshte_paguar)
-                                        {{-- SELECT 2: KATEGORIA E SHËRBIMIT --}}
-                                        <div class="col-lg-4 transition-element">
-                                            <div class="form-group mb-4">
-                                                <label class="label text-secondary fw-medium mb-2">{{ __('Zgjidh Shërbimin') }} <span class="text-danger">*</span></label>
-                                                <div class="form-group position-relative">
-                                                    <select wire:model="id_kategoria" class="form-select form-control h-60 rounded-3 @error('id_kategoria') is-invalid @enderror">
-                                                        <option value="" class="text-dark">-- {{ __('Zgjidh Shërbimin') }} --</option>
-                                                        @foreach($kategorite as $kategoria)
-                                                            <option value="{{ $kategoria->id }}" class="text-dark">{{ $kategoria->kategoria }}</option>
-                                                        @endforeach
-                                                    </select>
-                                                    @error('id_kategoria') <div class="invalid-feedback mt-1">{{ $message }}</div> @enderror
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {{-- SELECT 3: PERZGJEDHJA E MONEDHËS --}}
-                                        <div class="col-lg-4 transition-element">
-                                            <div class="form-group mb-4">
-                                                <label class="label text-secondary fw-medium mb-2">{{ __('Monedha e Pagesës') }} <span class="text-danger">*</span></label>
-                                                <div class="form-group position-relative">
-                                                    <select wire:model="id_monedha" class="form-select form-control h-60 rounded-3 @error('id_monedha') is-invalid @enderror">
-                                                        <option value="" class="text-dark">-- {{ __('Zgjidh Monedhën') }} --</option>
-                                                        @foreach($monedhat as $monedha)
-                                                            <option value="{{ $monedha->id }}" class="text-dark">{{ $monedha->emri }} ({{ $monedha->kodi }})</option>
-                                                        @endforeach
-                                                    </select>
-                                                    @error('id_monedha') <div class="invalid-feedback mt-1">{{ $message }}</div> @enderror
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {{-- INPUT 4: SHIFRPA E PAGUAR --}}
-                                        <div class="col-lg-4 transition-element">
-                                            <div class="form-group mb-4">
-                                                <label class="label text-secondary fw-medium mb-2">{{ __('Shifra e Paguar (Vlera)') }} <span class="text-danger">*</span></label>
-                                                <input type="number" step="0.01" min="0" wire:model="shuma_paguar"
-                                                       class="form-control h-60 rounded-3 @error('shuma_paguar') is-invalid @enderror"
-                                                       placeholder="{{ __('Vendos shifrën...') }}">
-                                                @error('shuma_paguar') <div class="invalid-feedback mt-1">{{ $message }}</div> @enderror
-                                            </div>
-                                        </div>
-                                    @endif
-
-                                    {{-- BUTONI --}}
                                     <div class="col-12 text-end mt-2">
                                         <button type="submit" class="btn btn-primary py-2 px-4 fs-14 fw-semibold rounded-3 shadow-sm">
                                             <span wire:loading wire:target="ruajOperacionin" class="spinner-border spinner-border-sm me-2"></span>
@@ -211,13 +164,13 @@
                     <div class="modal-header border-bottom p-4">
                         <h5 class="modal-title fs-16 fw-semibold" id="modalPagesaMjetitLabel">
                             <i class="ri-money-dollar-circle-line align-middle me-1 text-primary fs-20"></i>
-                            {{ __('Procedo me Mbylljen / Pagesën') }}
+                            @if($eshteRegjistrimParaprak)
+                                {{ __('Pagesa Paraprake — Mjeti Mbetet Prezent') }}
+                            @else
+                                {{ __('Procedo me Mbylljen / Pagesën') }}
+                            @endif
                         </h5>
-
-                        <button type="button"
-                                class="btn-close shadow-none"
-                                wire:click="$set('klickedTarga', false)">
-                        </button>
+                        <button type="button" class="btn-close shadow-none" wire:click="$set('klickedTarga', false)"></button>
                     </div>
 
                     {{-- TRUPI --}}
@@ -286,6 +239,22 @@
                                     </div>
                                 </div>
 
+                                {{-- NEW: Fasha Orare — shfaqet vetëm kur bëhet parapagesë --}}
+                                @if($eshteRegjistrimParaprak)
+                                    <div class="col-12">
+                                        <div class="form-group">
+                                            <label class="label text-secondary fw-medium mb-1 fs-12">{{ __('Fasha Orare') }}</label>
+                                            <select wire:model.live="modal_id_fasha" class="form-select fs-13 py-2 rounded-3">
+                                                @forelse($fashatOrare as $fasha)
+                                                    <option value="{{ $fasha->id }}">{{ $fasha->nga }} - {{ $fasha->ne }} {{ __('orë') }}</option>
+                                                @empty
+                                                    <option value="">{{ __('Nuk ka fasha të përcaktuara për këtë shërbim') }}</option>
+                                                @endforelse
+                                            </select>
+                                        </div>
+                                    </div>
+                                @endif
+
                                 {{-- DROPDOWN 3: MËNYRA E PAGESËS --}}
                                 <div class="col-12">
                                     <div class="form-group">
@@ -338,7 +307,11 @@
                                 class="btn btn-success py-2 px-3 fs-13 fw-semibold rounded-3 text-white"
                                 wire:click="ruajTransaksionin">
                             <i class="ri-check-double-line me-1"></i>
-                            {{ __('Përfundo & Mbyll Operacionin') }}
+                            @if($eshteRegjistrimParaprak)
+                                {{ __('Ruaj Pagesën') }}
+                            @else
+                                {{ __('Përfundo & Mbyll Operacionin') }}
+                            @endif
                         </button>
 
                     </div>
