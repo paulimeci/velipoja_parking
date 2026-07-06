@@ -23,7 +23,7 @@ class MonedhaSeeder extends Seeder
         DB::table('adm_monedhat')->insert([
             [
                 'kodi' => 'ALL',
-                'emri' => 'Leku Shqiptar',
+                'emri' => 'Lek',
                 'is_default' => true,
                 'created_at' => now(),
                 'updated_at' => now(),

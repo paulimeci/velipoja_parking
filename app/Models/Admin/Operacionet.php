@@ -2,6 +2,7 @@
 
 namespace App\Models\Admin;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -24,5 +25,9 @@ class Operacionet extends Model
     }
     public function transaksioni (): HasOne {
         return $this->hasOne(TransaksioniOperacionit::class, 'id_operacionit');
+    }
+
+    public function operatori (): BelongsTo {
+        return $this->belongsTo(User::class, 'id_operatori');
     }
 }

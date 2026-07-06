@@ -14,5 +14,10 @@ class KategoriaPageses extends Model
         return $this->njesia_matjes === 'dite';
     }
 
+    public function oreNjesiReale(): int
+    {
+        return $this->ore_per_njesi ?: 24;
+    }
+
 
 }
