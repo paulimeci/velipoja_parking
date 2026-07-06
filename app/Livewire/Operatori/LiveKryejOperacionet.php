@@ -57,10 +57,6 @@ class LiveKryejOperacionet extends Component
         }
     }
 
-    // ════════════════════════════════════════════════
-    // NEW: Trigger-i kryesor — thirret automatikisht kur ndryshon $eshte_paguar
-    // (falë wire:model.live="eshte_paguar" në blade)
-    // ════════════════════════════════════════════════
     public function updatedEshtePaguar($value)
     {
         if (!$value) {
@@ -105,9 +101,6 @@ class LiveKryejOperacionet extends Component
         session()->flash('success', 'Mjeti u regjistrua si Prezent. Vazhdo me pagesën paraprake më poshtë.');
     }
 
-    // ════════════════════════════════════════════════
-    // Hapja e modalit nga lista e "Mjeteve Prezent" (mbyllje reale)
-    // ════════════════════════════════════════════════
     public function shfaqModalPagesen($id)
     {
         $operacioni = Operacionet::find($id);
@@ -118,10 +111,6 @@ class LiveKryejOperacionet extends Component
         }
     }
 
-    // ════════════════════════════════════════════════
-    // NEW: Logjika e përbashkët për të inicializuar modalin
-    // (përdoret dhe nga pagesa paraprake dhe nga mbyllja reale)
-    // ════════════════════════════════════════════════
     private function inicializoModalinPerOperacionin(Operacionet $operacioni)
     {
         $this->mjetiZgjedhur = $operacioni;

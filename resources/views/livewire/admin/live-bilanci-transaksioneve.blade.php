@@ -212,6 +212,7 @@
                                         <th scope="col">Lloji Qëndrimit</th>
                                         <th scope="col">Operatori</th> {{-- NEW COLUMN --}}
                                         <th scope="col" class="text-end pe-4 py-3">Pagesa</th>
+                                        <th scope="col" class="text-end pe-4 py-3">View/Edito</th>
                                     </tr>
                                     </thead>
                                     <tbody class="fs-15">
@@ -267,6 +268,14 @@
                                                 <span class="text-success-emphasis font-monospace fw-black">{{ number_format($mjeti['shuma'], 2) }}</span>
                                                 <small class="text-secondary fw-bold fs-12 ms-1">{{ $mjeti['monedha_kodi'] }}</small>
                                             </td>
+                                            {{-- Te tabela e modalit të parë, zëvendëso <td></td> e fundit me këtë: --}}
+                                            <td class="text-end pe-4 py-3">
+                                                <button type="button"
+                                                        wire:click="editoTransaksionin({{ $mjeti['transaksioni_id'] }})"
+                                                        class="btn btn-sm btn-outline-warning rounded-3 fw-semibold">
+                                                    <i class="ri-edit-box-line"></i> Edito
+                                                </button>
+                                            </td>
                                         </tr>
                                     @endforeach
                                     </tbody>
@@ -295,6 +304,110 @@
                             Mbyll Dritaren
                         </button>
                     </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- ═══════════════════════════════════════
+          MODAL I DYTË: EDITO / FSHIJ TRANSAKSIONIN
+         ════════════════════════════════════════ --}}
+    @if($shfaqModalEdit)
+        <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); z-index: 1060;">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 rounded-4 shadow-lg bg-white">
+
+                    <div class="modal-header bg-light border-bottom py-3 px-4">
+                        <h5 class="modal-title fw-bold text-dark fs-16">
+                            <i class="ri-edit-2-fill text-warning me-1"></i> Modifiko Transaksionin
+                        </h5>
+                        <button type="button" class="btn-close shadow-none" wire:click="$set('shfaqModalEdit', false)"></button>
+                    </div>
+
+                    <form wire:submit.prevent="ruajNdryshimet">
+                        <div class="modal-body p-4 bg-white">
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold text-secondary">Targa</label>
+                                <input type="text" wire:model="editTarga" class="form-control text-uppercase font-monospace fw-bold">
+                                @error('editTarga') <small class="text-danger">{{ $message }}</small> @enderror
+                            </div>
+
+                            <div class="row g-3 mb-3">
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold text-secondary fs-12">Monedha</label>
+                                    <select wire:model.live="editMonedha" class="form-select fs-13 py-2 rounded-3">
+                                        @foreach(\App\Models\Admin\Monedhat::all() as $monedha)
+                                            <option value="{{ $monedha->id }}">{{ $monedha->kodi }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold text-secondary fs-12">Kategoria Qëndrimit</label>
+                                    <select wire:model.live="editKategoria" class="form-select fs-13 py-2 rounded-3">
+                                        @foreach(\DB::table('adm_kategoria_pageses')->get() as $kat)
+                                            <option value="{{ $kat->id }}">{{ $kat->kategoria }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+
+                            {{-- DINAMIKE SIPAS NJËSISË SË MATJES --}}
+                            <div class="row g-3 mb-3">
+                                @php
+                                    $kategoriaAktualeEdit = \DB::table('adm_kategoria_pageses')->find($editKategoria);
+                                @endphp
+
+                                @if($kategoriaAktualeEdit && $kategoriaAktualeEdit->njesia_matjes === 'dite')
+                                    <div class="col-12">
+                                        <label class="form-label fw-semibold text-secondary fs-12">Sa Ditë / Netë?</label>
+                                        <input type="number" step="1" min="1" wire:model.live="editSasia" class="form-control fs-13 py-2 rounded-3">
+                                    </div>
+                                @else
+                                    <div class="col-12">
+                                        <label class="form-label fw-semibold text-secondary fs-12">Fasha Orare</label>
+                                        <select wire:model.live="editIdFasha" class="form-select fs-13 py-2 rounded-3">
+                                            @forelse($editFashatOrare as $fasha)
+                                                <option value="{{ $fasha->id }}">{{ $fasha->nga }} - {{ $fasha->ne }} orë</option>
+                                            @empty
+                                                <option value="">Nuk ka fasha të përcaktuara për këtë shërbim</option>
+                                            @endforelse
+                                        </select>
+                                    </div>
+                                @endif
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold text-secondary fs-12">Vlera për t'u Paguar</label>
+                                <div class="input-group">
+                                    <input type="number" step="0.01" wire:model="editVlera" class="form-control fw-bold text-success fs-14 py-2 bg-light shadow-sm">
+                                    <span class="input-group-text bg-light text-secondary border-start-0 fw-bold fs-12">
+            {{ \App\Models\Admin\Monedhat::find($editMonedha)?->kodi ?? 'LEK' }}
+        </span>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <div class="modal-footer bg-light border-top d-flex justify-content-between py-3 px-4">
+                            <button type="button"
+                                    wire:click="fshiTransaksionin"
+                                    wire:confirm="A jeni i sigurt që dëshironi ta fshini këtë transaksion?"
+                                    class="btn btn-danger fw-bold rounded-3">
+                                <i class="ri-delete-bin-line"></i> Fshij
+                            </button>
+
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-light border text-secondary fw-bold rounded-3" wire:click="$set('shfaqModalEdit', false)">
+                                    Anulo
+                                </button>
+                                <button type="submit" class="btn btn-primary fw-bold rounded-3 px-4">
+                                    Ruaj Ndryshimet
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+
                 </div>
             </div>
         </div>

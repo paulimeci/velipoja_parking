@@ -33,4 +33,8 @@ class TransaksioniOperacionit extends Model
     {
         return $this->belongsTo(\App\Models\Admin\Monedhat::class, 'monedha');
     }
+
+    public function operacioni(){
+        return $this->belongsTo(Operacionet::class, 'id_operacionit');
+    }
 }
