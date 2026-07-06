@@ -12,8 +12,16 @@ use App\Livewire\Operatori\LiveKryejOperacionet;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 
-Route::view('/', 'welcome')->name('home');
+// Ndrysho rrugën kryesore '/'
+Route::get('/', function () {
+    if (Auth::check()) {
+        // Nëse është i loguar, e çojmë te dashboard që bën ndarjen e roleve automatikisht
+        return redirect()->route('dashboard');
+    }
 
+    // Nëse NUK është i loguar, e çojmë te faqja e login-it
+    return redirect()->route('login');
+})->name('home');
 Route::middleware(['auth', 'verified'])->group(function () {
 
     // KETU BEHET REDIRECT DINAMIK BAZUAR NE PERMISSIONS/ROLET E SPATIE
