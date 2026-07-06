@@ -7,6 +7,7 @@ use App\Livewire\Admin\LiveAdminKonfiguroOret;
 use App\Livewire\Admin\LiveBilanciTransaksioneve;
 use App\Livewire\Admin\ManageRoles;
 use App\Livewire\Admin\ManageUsers;
+use App\Http\Controllers\PrintController;
 use App\Livewire\Operatori\LiveKryejOperacionet;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -63,6 +64,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware(['can:operatori.kryej-operacionet'])->group(function () {
         Route::get('operatori/operacionet', LiveKryejOperacionet::class)->name('operatori.operacionet');
     });
+
+    Route::get('/print/hyrje/{operacioni}', [PrintController::class, 'kuponiHyrjes'])
+        ->name('print.hyrje')
+        ->middleware('auth');
+
+    Route::get('/print/dalje/{operacioni}', [PrintController::class, 'kuponiDaljes'])
+        ->name('print.dalje')
+        ->middleware('auth');
 
 });
 

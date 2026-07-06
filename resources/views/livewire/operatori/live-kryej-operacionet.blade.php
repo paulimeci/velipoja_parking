@@ -307,124 +307,234 @@
             </div>
         </div>
     @endif
+    {{-- ═══════════════════════════════════════
+              SEKSIONI I RI: MJETET E SHËRBYERA (LARGUR)
+             ════════════════════════════════════════ --}}
+    <div class="card bg-white border-0 rounded-3 mb-4 mt-5 shadow-sm">
+        <div class="card-body p-4">
 
-    {{-- STRUKTURA E FATURËS TERMRE --}}
-    <div id="fatura-print" class="d-none-screen">
-        <div class="fatura-container">
-            <div class="text-center fw-bold fs-16 mb-1">VELIPOJA PARKING</div>
-            <div class="text-center fs-11 mb-3">Faleminderit për vizitën tuaj!</div>
+            {{-- Koka e seksionit dhe Tabet --}}
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center border-bottom pb-3 mb-4 gap-3">
+                <div>
+                    <h5 class="fs-16 fw-semibold mb-1"><i class="ri-history-line me-1 text-secondary"></i> {{ __('Mjetet e Shërbyera') }}</h5>
+                    <p class="text-secondary fs-12 mb-0">{{ __('Lista e makinave që kanë përfunduar operacionin dhe janë larguar.') }}</p>
+                </div>
 
-            <div class="vije-ndarese"></div>
+                {{-- Navigimi i Tabeve --}}
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <div class="btn-group p-1 bg-light rounded-3" role="group">
+                        <button type="button" wire:click="$set('tabiAktiv', 'sot')"
+                                class="btn btn-sm rounded-2 px-3 fs-13 fw-medium {{ $tabiAktiv === 'sot' ? 'btn-primary text-white shadow-sm' : 'btn-light border-0 text-secondary' }}">
+                            {{ __('Sot') }}
+                        </button>
+                        <button type="button" wire:click="$set('tabiAktiv', 'dje')"
+                                class="btn btn-sm rounded-2 px-3 fs-13 fw-medium {{ $tabiAktiv === 'dje' ? 'btn-primary text-white shadow-sm' : 'btn-light border-0 text-secondary' }}">
+                            {{ __('Dje') }}
+                        </button>
+                        <button type="button" wire:click="$set('tabiAktiv', 'cakto_daten')"
+                                class="btn btn-sm rounded-2 px-3 fs-13 fw-medium {{ $tabiAktiv === 'cakto_daten' ? 'btn-primary text-white shadow-sm' : 'btn-light border-0 text-secondary' }}">
+                            {{ __('Cakto Datën') }}
+                        </button>
+                    </div>
 
-            <table class="tabela-fature">
-                <tr>
-                    <td>TARGA:</td>
-                    <td class="text-end fw-bold fs-14" id="fat-targa"></td>
-                </tr>
-                <tr>
-                    <td>GJENDJA:</td>
-                    <td class="text-end fw-bold" id="fat-status"></td>
-                </tr>
-                <tr>
-                    <td>ORA E HYRJES:</td>
-                    <td class="text-end" id="fat-hyrja"></td>
-                </tr>
-                <tr>
-                    <td>ORA E IKJES:</td>
-                    <td class="text-end" id="fat-ikja"></td>
-                </tr>
-                <tr>
-                    <td>SHËRBIMI:</td>
-                    <td class="text-end" id="fat-modaliteti"></td>
-                </tr>
-                <tr>
-                    <td>SASIA / FASHA:</td>
-                    <td class="text-end" id="fat-sasia"></td>
-                </tr>
-                <tr>
-                    <td>PAGESA:</td>
-                    <td class="text-end" id="fat-metoda"></td>
-                </tr>
-                <tr class="fs-13 fw-bold">
-                    <td>TOTALI:</td>
-                    <td class="text-end" id="fat-vlera"></td>
-                </tr>
-            </table>
-
-            <div class="vije-ndarese"></div>
-
-            <div class="text-center fs-10 mt-2">
-                Operatori: <span id="fat-operatori"></span><br>
-                Data: {{ now()->format('d/m/Y H:i:s') }}
+                    {{-- Shfaqet vetëm nëse klikohet tab-i "Cakto Datën" --}}
+                    @if($tabiAktiv === 'cakto_daten')
+                        <div class="animate__animated animate__fadeIn">
+                            <input type="date" wire:model.live="dataSpecifike" class="form-control form-control-sm border-secondary border-opacity-25 rounded-3 fs-13 py-1.5 px-2" style="width: 150px;">
+                        </div>
+                    @endif
+                </div>
             </div>
+
+            {{-- Lista e makinave të larguara --}}
+            <div class="row gx-2 gy-2">
+                @forelse($mjeteLarguar as $mLarguar)
+                    <div class="col-xxl-2 col-xl-2 col-lg-3 col-md-4 col-sm-6 col-6">
+                        <div class="card bg-light border-0 rounded-3 mb-2 shadow-sm position-relative opacity-85">
+                            <div class="card-body p-2.5">
+
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill px-1.5 py-0.5 fs-10 fw-medium">
+                                        <i class="ri-checkbox-circle-fill fs-7 align-middle me-0.5 text-muted"></i>{{ __('Larguar') }}
+                                    </span>
+                                    <span class="text-secondary fw-semibold" style="font-size: 11px;">
+                                        🕒 {{ \Carbon\Carbon::parse($mLarguar->ikja)->format('H:i') }}
+                                    </span>
+                                </div>
+
+                                {{-- Targa e stiluar si targë mjeti --}}
+                                {{-- Ndryshoje këtë pjesë te mjetet e larguara --}}
+                                <div class="text-center py-2.5 my-1">
+                                    <div class="d-inline-flex align-items-center justify-content-center bg-white border border-secondary border-opacity-50 rounded-2 w-100"
+                                         style="height: 40px; background-color: #fcfcfc !important; cursor: pointer;"
+                                         wire:click="shfaqDetajetMjetitLarguar({{ $mLarguar->id }})"> {{-- SHTO KËTË LINJË --}}
+                                        <span class="fs-16 fw-bold text-dark font-monospace text-uppercase" style="letter-spacing: 0.5px;">
+            {{ $mLarguar->targa }}
+        </span>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex justify-content-between align-items-center border-top border-dark border-opacity-10 pt-1.5 fs-11 text-secondary">
+                                    <span>{{ __('Hyrja') }}: <b>{{ \Carbon\Carbon::parse($mLarguar->nisja)->format('H:i') }}</b></span>
+                                    @if($mLarguar->transaksioni)
+                                        <span class="text-dark fw-bold">
+                                            {{ $mLarguar->transaksioni->vlera }} {{ $mLarguar->transaksioni->monedhaRelacion->kodi ?? '' }}
+                                        </span>
+                                    @endif
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                @empty
+                    <div class="col-12">
+                        <div class="text-center py-5 bg-light bg-opacity-50 rounded-3 border border-dashed">
+                            <i class="ri-inbox-archive-line fs-32 text-secondary text-opacity-40"></i>
+                            <p class="text-secondary fs-13 mt-2 mb-0">
+                                {{ __('Nuk ka asnjë mjet të shërbyer për këtë përzgjedhje.') }}
+                            </p>
+                        </div>
+                    </div>
+                @endforelse
+            </div>
+
         </div>
     </div>
+    {{-- ═══════════════════════════════════════
+          MODAL POP-UP: DETAJET E MJETIT TË LARGUR
+         ════════════════════════════════════════ --}}
+    @if($shfaqModalDetajet)
+        <div class="modal fade show d-block" id="modalDetajetMjetit" tabindex="-1" role="dialog" style="background: rgba(0,0,0,0.5); z-index: 1060;">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 bg-white shadow rounded-3">
 
-    {{-- STILE SHTESË PËR PRINTIM TË SAKTË TË FATURËS TERMRE 80mm/58mm NË A4 --}}
-    <style>
-        #fatura-print { display: none; }
+                    {{-- KOKA E MODALIT --}}
+                    <div class="modal-header border-bottom p-4">
+                        <h5 class="modal-title fs-16 fw-semibold text-secondary">
+                            <i class="ri-information-line align-middle me-1 text-info fs-20"></i>
+                            {{ __('Historiku & Detajet e Operacionit') }}
+                        </h5>
+                        <button type="button" class="btn-close shadow-none" wire:click="$set('shfaqModalDetajet', false)"></button>
+                    </div>
 
-        @media print {
-            body * { display: none !important; }
-            #fatura-print, #fatura-print * { display: block !important; }
+                    {{-- TRUPI I MODALIT --}}
+                    <div class="modal-body p-4">
+                        @if($mjetiLarguarZgjedhur)
+                            {{-- Targa e madhe në qendër --}}
+                            <div class="text-center mb-4">
+                                <div class="d-inline-flex align-items-center justify-content-center bg-dark text-white border border-dark rounded-2 px-4 py-1" style="min-width: 160px; height: 45px;">
+                                    <span class="fs-20 fw-black font-monospace text-uppercase" style="letter-spacing: 0.8px;">
+                                        {{ $mjetiLarguarZgjedhur->targa }}
+                                    </span>
+                                </div>
+                            </div>
 
-            #fatura-print {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-                margin: 0;
-                padding: 40px;
-                background: #fff;
-                color: #000;
-                font-family: 'Courier New', Courier, monospace;
-            }
+                            {{-- Tabela e detajeve të plota --}}
+                            <div class="table-responsive">
+                                <table class="table table-sm table-borderless fs-13 mb-0">
+                                    <tbody>
+                                    <tr class="border-bottom border-light">
+                                        <td class="text-secondary py-2.5 fw-medium">{{ __('Data/Ora Hyrjes') }}:</td>
+                                        <td class="text-dark py-2.5 fw-semibold text-end">
+                                            {{ \Carbon\Carbon::parse($mjetiLarguarZgjedhur->nisja)->format('d/m/Y - H:i:s') }}
+                                        </td>
+                                    </tr>
+                                    <tr class="border-bottom border-light">
+                                        <td class="text-secondary py-2.5 fw-medium">{{ __('Data/Ora Daljes') }}:</td>
+                                        <td class="text-dark py-2.5 fw-semibold text-end">
+                                            {{ $mjetiLarguarZgjedhur->ikja ? \Carbon\Carbon::parse($mjetiLarguarZgjedhur->ikja)->format('d/m/Y - H:i:s') : '-' }}
+                                        </td>
+                                    </tr>
+                                    <tr class="border-bottom border-light">
+                                        <td class="text-secondary py-2.5 fw-medium">{{ __('Koha totale e qëndrimit') }}:</td>
+                                        <td class="text-danger py-2.5 fw-bold text-end">
+                                            @php
+                                                $hyrja = \Carbon\Carbon::parse($mjetiLarguarZgjedhur->nisja);
+                                                $ikja = \Carbon\Carbon::parse($mjetiLarguarZgjedhur->ikja);
+                                                echo $hyrja->diffForHumans($ikja, true);
+                                            @endphp
+                                        </td>
+                                    </tr>
+                                    <tr class="border-bottom border-light">
+                                        <td class="text-secondary py-2.5 fw-medium">{{ __('Operatori Shërbyes') }}:</td>
+                                        <td class="text-dark py-2.5 fw-semibold text-end">
+                                                <span class="badge bg-light text-dark p-2 border">
+                                                    👤 {{ $mjetiLarguarZgjedhur->operatori->name ?? __('I panjohur') }}
+                                                </span>
+                                        </td>
+                                    </tr>
 
-            .fatura-container {
-                width: 120mm;
-                margin: 0 auto;
-                padding: 20px;
-                border: 1px dashed #ccc;
-            }
+                                    {{-- Seksioni i Pagesës nëse ka transaksion --}}
+                                    @if($mjetiLarguarZgjedhur->transaksioni)
+                                        <tr class="border-bottom border-light">
+                                            <td class="text-secondary py-2.5 fw-medium">{{ __('Mënyra e Prenotimit/Shërbimi') }}:</td>
+                                            <td class="text-primary py-2.5 fw-semibold text-end">
+                                                {{ $mjetiLarguarZgjedhur->transaksioni->prenotimi->kategoria ?? __('Standard') }}
+                                            </td>
+                                        </tr>
+                                        <tr class="border-bottom border-light">
+                                            <td class="text-secondary py-2.5 fw-medium">{{ __('Fasha / Kohëzgjatja') }}:</td>
+                                            <td class="text-dark py-2.5 fw-semibold text-end">
+                                                {{-- Kontrollojmë njësinë matëse direkt nga kategoria e prenotimit --}}
+                                                {{--@dump($mjetiLarguarZgjedhur->transaksioni->prenotimi)--}}
+                                                @if($mjetiLarguarZgjedhur->transaksioni->prenotimi && $mjetiLarguarZgjedhur->transaksioni->prenotimi->njesia_matjes === 'dite')
+                                                    {{-- Nëse kategoria është me ditë, shfaq sasinë --}}
+                                                    <span class="badge bg-warning bg-opacity-10 text-dark px-2 py-1 rounded" style="color: #856404;">
+                <i class="ri-calendar-line me-1"></i>{{ $mjetiLarguarZgjedhur->transaksioni->sasia }} {{ __('Ditë') }}
+            </span>
+                                                @else
+                                                    {{-- Nëse kategoria është me orë, shfaq fashën orare --}}
+                                                    @if($mjetiLarguarZgjedhur->transaksioni->fashaOrare)
+                                                        <span class="badge bg-primary bg-opacity-10 text-primary px-2 py-1 rounded">
+                    <i class="ri-time-line me-1"></i>{{ $mjetiLarguarZgjedhur->transaksioni->fashaOrare->nga }} - {{ $mjetiLarguarZgjedhur->transaksioni->fashaOrare->ne }} {{ __('orë') }}
+                </span>
+                                                    @else
+                                                        <span class="text-muted fs-12">{{ __('Standard') }}</span>
+                                                    @endif
+                                                @endif
+                                            </td>
+                                        </tr>
+                                        <tr class="border-bottom border-light">
+                                            <td class="text-secondary py-2.5 fw-medium">{{ __('Mënyra e Pagesës') }}:</td>
+                                            <td class="text-dark py-2.5 fw-semibold text-end text-capitalize">
+                                                {{ $mjetiLarguarZgjedhur->transaksioni->metoda_pageses ?? 'Kesh' }}
+                                            </td>
+                                        </tr>
+                                        <tr class="bg-success bg-opacity-10 rounded-2">
+                                            <td class="text-success py-2.5 fw-bold ps-2">{{ __('Vlera e Paguar') }}:</td>
+                                            <td class="text-success py-2.5 fw-bolder text-end pe-2 fs-15">
+                                                {{ $mjetiLarguarZgjedhur->transaksioni->vlera }} {{ $mjetiLarguarZgjedhur->transaksioni->monedhaRelacion->kodi ?? 'ALL' }}
+                                            </td>
+                                        </tr>
+                                    @else
+                                        <tr class="bg-danger bg-opacity-10 rounded-2">
+                                            <td class="text-danger py-2.5 fw-bold ps-2">{{ __('Statusi') }}:</td>
+                                            <td class="text-danger py-2.5 fw-bold text-end pe-2">
+                                                {{ __('Pa transaksion të dokumentuar') }}
+                                            </td>
+                                        </tr>
+                                    @endif
+                                    </tbody>
+                                </table>
+                            </div>
+                        @else
+                            <div class="text-center py-4">
+                                <div class="spinner-border text-info spinner-border-sm" role="status"></div>
+                                <p class="text-secondary fs-12 mt-2 mb-0">{{ __('Duke ngarkuar të dhënat...') }}</p>
+                            </div>
+                        @endif
+                    </div>
 
-            .text-center { text-align: center; }
-            .text-end { text-align: right; }
-            .fw-bold { font-weight: bold; }
-            .fs-16 { font-size: 20px; }
-            .fs-14 { font-size: 16px; }
-            .fs-13 { font-size: 15px; }
-            .fs-11 { font-size: 13px; }
-            .fs-10 { font-size: 12px; }
-            .mb-1 { margin-bottom: 5px; }
-            .mb-3 { margin-bottom: 15px; }
-            .mt-2 { margin-top: 15px; }
-            .vije-ndarese { border-top: 2px dashed #000; margin: 12px 0; }
-            .tabela-fature { width: 100%; font-size: 13px; }
-            .tabela-fature td { padding: 6px 0; vertical-align: top; }
-        }
-    </style>
+                    {{-- FOOTER --}}
+                    <div class="modal-footer border-top p-3 bg-light bg-opacity-50">
+                        <button type="button" class="btn btn-secondary py-2 px-4 fs-13 fw-semibold rounded-3 text-dark border-0 bg-gray bg-opacity-20 w-100" wire:click="$set('shfaqModalDetajet', false)">
+                            {{ __('Mbyll dritaren') }}
+                        </button>
+                    </div>
 
-    {{-- JAVASCRIPT KATCHER I EVENTIT NGA LIVEWIRE --}}
-    <script>
-        document.addEventListener('livewire:init', () => {
-            Livewire.on('printo-faturen', (event) => {
-                const data = event[0];
+                </div>
+            </div>
+        </div>
+    @endif
 
-                // Mbushim HTML-në me të dhënat e faturës reale
-                document.getElementById('fat-targa').innerText = data.targa;
-                document.getElementById('fat-status').innerText = data.status;
-                document.getElementById('fat-hyrja').innerText = data.hyrja;
-                document.getElementById('fat-ikja').innerText = data.ikja;
-                document.getElementById('fat-modaliteti').innerText = data.modaliteti;
-                document.getElementById('fat-sasia').innerText = data.sasia; // Rregulluar këtu nga sasia_fasha në sasia
-                document.getElementById('fat-metoda').innerText = data.metoda;
-                document.getElementById('fat-vlera').innerText = data.vlera;
-                document.getElementById('fat-operatori').innerText = data.operatori;
-
-                setTimeout(() => {
-                    window.print();
-                }, 300);
-            });
-        });
-    </script>
 </div>

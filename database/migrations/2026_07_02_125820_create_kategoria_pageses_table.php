@@ -13,9 +13,10 @@ return new class extends Migration
     {
         Schema::create('adm_kategoria_pageses', function (Blueprint $table) {
             $table->id();
-            $table->enum('njesia_matjes', ['ore', 'dite'])->default('ore')->after('kategoria');
+            $table->enum('njesia_matjes', ['ore', 'dite'])->default('ore');
             $table->string('kategoria');
             $table->boolean('is_default')->default(false);
+            $table->unsignedInteger('ore_per_njesi')->default(24);
             $table->timestamps();
         });
 

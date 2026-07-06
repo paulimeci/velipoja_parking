@@ -11,13 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('adm_operacionet', function (Blueprint $table) {
+        Schema::create('adm_ndryshimi_operatorit', function (Blueprint $table) {
             $table->id();
-            $table->integer('id_operatori');
-            $table->string('targa', 20);
-            $table->dateTime('nisja');
-            $table->dateTime('ikja')->nullable();
-            $table->enum('status', ['prezent', 'larguar'])->default('prezent');
+            $table->integer('id_transaksionit');
+            $table->integer('operatori_pare');
+            $table->integer('operatori_dyte');
+            $table->double('pagesa_e_re')->nullable();
             $table->timestamps();
         });
     }
@@ -27,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('adm_operacionet');
+        Schema::dropIfExists('adm_ndryshimi_operatorit');
     }
 };
