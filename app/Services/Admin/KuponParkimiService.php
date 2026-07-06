@@ -13,7 +13,7 @@ class KuponParkimiService
     protected int $printerPort;
     protected int $timeout = 5;
 
-    protected int $paperWidth = 32;
+    protected int $paperWidth = 31;
 
     public function __construct(string $printerIp = '10.10.12.15', int $printerPort = 9100, ?int $paperWidth = null)
     {
@@ -178,7 +178,7 @@ class KuponParkimiService
         $content .= $this->kvLine('Hyrja', \Carbon\Carbon::parse($operacioni->nisja)->format('d/m/Y H:i'));
 
         if ($eshteDalje) {
-            $content .= $this->kvLine('Ikja', \Carbon\Carbon::parse($operacioni->ikja)->format('d/m/Y H:i'));
+            $content .= $this->kvLine('Dalja', \Carbon\Carbon::parse($operacioni->ikja)->format('d/m/Y H:i'));
 
             // NEW: nëse ishte parapaguar, e theksojmë qartë te statusi
             if ($ishteParaprakisht) {
@@ -191,15 +191,16 @@ class KuponParkimiService
         $content .= $this->separator('-');
         $content .= $this->kvLine('Sherbimi', $kategoria->kategoria ?? '-');
 
-        if ($transaksioni->sasia && $transaksioni->sasia > 1) {
-            $content .= $this->kvLine('Sasia', 'x' . $transaksioni->sasia);
-        }
-
-        if ($transaksioni->fashaOrare) {
+// NEW: njësoj si te buildHistorikuContent() — kontrollojmë njesia_matjes
+// nëse është 'dite', shfaqim SASINË te rreshti "Fasha" (jo ndarë më vete)
+        if ($kategoria && $kategoria->njesia_matjes === 'dite') {
+            $content .= $this->kvLine('Fasha', $transaksioni->sasia . ' Dite');
+        } elseif ($transaksioni->fashaOrare) {
             $content .= $this->kvLine('Fasha', $transaksioni->fashaOrare->nga . '-' . $transaksioni->fashaOrare->ne);
         }
 
         $content .= $this->kvLine('Metoda', $metodaPageses === 'kesh' ? 'Kesh' : 'Karte');
+
         $content .= $this->separator('-');
 
         $content .= $this->alignCenter();
@@ -374,5 +375,105 @@ class KuponParkimiService
 
             return false;
         }
+    }
+
+    public function printoHistorikunMjetit(Operacionet $operacioni): bool
+    {
+        try {
+            // Sigurohemi që relacionet janë të ngarkuara njësoj si te modali
+            $operacioni->loadMissing([
+                'operatori',
+                'transaksioni.prenotimi',
+                'transaksioni.fashaOrare',
+                'transaksioni.monedha',
+                'transaksioni.operatori'
+            ]);
+
+            $content = $this->buildHistorikuContent($operacioni);
+            return $this->sendToPrinter($content);
+        } catch (\Throwable $e) {
+            Log::error('KuponParkimiService historiku error', [
+                'operacioni_id' => $operacioni->id,
+                'message' => $e->getMessage(),
+            ]);
+            return false;
+        }
+    }
+
+    protected function buildHistorikuContent(Operacionet $operacioni): string
+    {
+        $transaksioni = $operacioni->transaksioni;
+
+        $content = '';
+        $content .= $this->initPrinter();
+        $content .= $this->alignCenter();
+
+        $content .= $this->textDoubleHeightOn();
+        $content .= $this->centerLine('PARKINGU');
+        $content .= $this->textDoubleHeightOff();
+        $content .= $this->centerLine('Historiku i Operacionit');
+        $content .= $this->separator('=');
+
+        // Targa e mjetit e zmadhuar
+        $content .= $this->textDoubleHeightOn();
+        $content .= $this->centerLine($this->normalizeText($operacioni->targa));
+        $content .= $this->textDoubleHeightOff();
+        $content .= $this->separator('-');
+
+        // Kohët e lëvizjes
+        $content .= $this->alignLeft();
+        $content .= $this->kvLine('Hyrja', \Carbon\Carbon::parse($operacioni->nisja)->format('d/m/Y H:i'));
+        $content .= $this->kvLine('Dalja', $operacioni->ikja ? \Carbon\Carbon::parse($operacioni->ikja)->format('d/m/Y H:i') : '-');
+
+        // Kalkulimi i kohës totale të qëndrimit
+        $hyrja = \Carbon\Carbon::parse($operacioni->nisja);
+        $ikja = \Carbon\Carbon::parse($operacioni->ikja);
+        $kohezgjatja = $hyrja->diffForHumans($ikja, true);
+        $content .= $this->kvLine('Qendrimi', $kohezgjatja);
+
+        // Operatori që e ka mbyllur ose regjistruar
+        $emriOperatorit = $transaksioni->operatori->name ?? $operacioni->operatori->name ?? 'I panjohur';
+        $content .= $this->kvLine('Operatori', $emriOperatorit);
+
+        $content .= $this->separator('-');
+
+        // Detajet e faturimit nëse ka transaksion
+        if ($transaksioni) {
+            $kategoria = $transaksioni->prenotimi->kategoria ?? 'Standard';
+            $content .= $this->kvLine('Sherbimi', $kategoria);
+
+            // Kontrolli për Ditë ose Orë sipas njesia_matese
+            if ($transaksioni->prenotimi && $transaksioni->prenotimi->njesia_matjes === 'dite') {
+                $content .= $this->kvLine('Kohezgjatja', $transaksioni->sasia . ' Dite');
+            } elseif ($transaksioni->fashaOrare) {
+                $content .= $this->kvLine('Kohezgjatja', $transaksioni->fashaOrare->nga . '-' . $transaksioni->fashaOrare->ne . ' ore');
+            }
+
+            $content .= $this->kvLine('Pagesa', $transaksioni->metoda_pageses === 'karte' ? 'Karte' : 'Kesh');
+            $content .= $this->separator('-');
+
+            // Vlera e paguar e theksuar
+            $emriMonedhes = $transaksioni->monedha->kodi ?? 'ALL';
+            $content .= $this->alignCenter();
+            $content .= $this->textEmphasizedOn();
+            $content .= $this->textDoubleHeightOn();
+            $content .= $this->centerLine('PAGUAR: ' . number_format($transaksioni->vlera, 2) . ' ' . $emriMonedhes);
+            $content .= $this->textDoubleHeightOff();
+            $content .= $this->textEmphasizedOff();
+        } else {
+            $content .= $this->alignCenter();
+            $content .= $this->textEmphasizedOn();
+            $content .= $this->centerLine('STATUSI: PA PAGUAR / SKA TRANSAKSION');
+            $content .= $this->textEmphasizedOff();
+        }
+
+        $content .= $this->separator('=');
+        $content .= $this->alignCenter();
+        $content .= $this->centerLine('Kopje e Rishfaqur');
+        $content .= $this->centerLine(\Carbon\Carbon::now()->format('d/m/Y H:i:s'));
+        $content .= "\n\n";
+        $content .= $this->cutPaper();
+
+        return $content;
     }
 }

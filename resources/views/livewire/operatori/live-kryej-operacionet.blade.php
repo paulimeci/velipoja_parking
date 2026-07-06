@@ -526,8 +526,18 @@
                     </div>
 
                     {{-- FOOTER --}}
-                    <div class="modal-footer border-top p-3 bg-light bg-opacity-50">
-                        <button type="button" class="btn btn-secondary py-2 px-4 fs-13 fw-semibold rounded-3 text-dark border-0 bg-gray bg-opacity-20 w-100" wire:click="$set('shfaqModalDetajet', false)">
+                    {{-- FOOTER I MODALIT TË DETAJEVE --}}
+                    <div class="modal-footer border-top p-3 bg-light bg-opacity-50 d-flex justify-content-between gap-2">
+
+                        {{-- Butoni i ri për printim termik direct në IP --}}
+                        <button type="button" class="btn btn-primary py-2 px-3 fs-13 fw-semibold rounded-3 text-white border-0"
+                                wire:click="printoHistorikunMjetitLarguar">
+                            <span wire:loading wire:target="printoHistorikunMjetitLarguar" class="spinner-border spinner-border-sm me-1"></span>
+                            <i class="ri-printer-line me-1"></i> {{ __('Printo Kupon Termik') }}
+                        </button>
+
+                        <button type="button" class="btn btn-secondary py-2 px-3 fs-13 fw-semibold rounded-3 text-dark border-0 bg-gray bg-opacity-20"
+                                wire:click="$set('shfaqModalDetajet', false)">
                             {{ __('Mbyll dritaren') }}
                         </button>
                     </div>

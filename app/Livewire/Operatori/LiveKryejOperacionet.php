@@ -500,6 +500,21 @@ class LiveKryejOperacionet extends Component
         }
     }
 
+    public function printoHistorikunMjetitLarguar()
+    {
+        if (!$this->mjetiLarguarZgjedhur) {
+            return;
+        }
+
+        $rezultati = app(KuponParkimiService::class)->printoHistorikunMjetit($this->mjetiLarguarZgjedhur);
+
+        if ($rezultati) {
+            session()->flash('success_modal', 'Kuponi i historikut u dërgua në printer!');
+        } else {
+            $this->addError('printer_error', 'Dështoi komunikimi me printerin. Kontrollo rrjetin ose IP-në.');
+        }
+    }
+
     public function render()
     {
         // 1. Mjetet që janë aktualisht në parking (Kodi ekzistues)

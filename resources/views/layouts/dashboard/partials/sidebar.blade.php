@@ -22,16 +22,6 @@
                 </a>
             </li>
 
-            @can('admin.dashboard')
-                <li class="menu-item">
-                    <a href="{{ route('admin.dashboard') }}" class="menu-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
-                        <span class="material-symbols-outlined menu-icon">admin_panel_settings</span>
-                        <span class="title">{{ __('Admin Dashboard') }}</span>
-                    </a>
-                </li>
-            @endcan
-
-
             <li class="menu-title small text-uppercase">
                 <span class="menu-title-text">{{ __('APPS') }}</span>
             </li>
