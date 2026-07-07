@@ -8,8 +8,17 @@
         <div class="col-lg-12">
             <div class="card bg-white border-0 rounded-3 mb-4">
                 <div class="card-body p-4">
+
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <h4 class="fs-18 mb-0">{{ __('Regjistro Hyrjen / Operacionin') }}</h4>
+                        <div class="d-flex align-items-center gap-2 mb-4">
+                            <button type="button" id="btnLidhBluetooth" class="btn btn-outline-primary btn-sm rounded-3 fs-13">
+                                <i class="ri-bluetooth-line me-1"></i> {{ __('Lidh Printerin (Rezervë)') }}
+                            </button>
+                            <span id="statusiBluetooth" class="badge bg-secondary bg-opacity-10 text-secondary fs-11">
+        {{ __('I Shkëputur') }}
+    </span>
+                        </div>
                         @if (session()->has('success'))
                             <span class="badge bg-success bg-opacity-10 text-success p-2 px-3 rounded-2 fs-13">
                                 <i class="ri-checkbox-circle-line align-middle me-1"></i> {{ session('success') }}
@@ -546,5 +555,166 @@
             </div>
         </div>
     @endif
+    <div id="zonaPrintimit" style="display: none;"></div>
+
+    <style>
+        @media print {
+            body * { visibility: hidden; }
+            #zonaPrintimit, #zonaPrintimit * { visibility: visible; }
+            #zonaPrintimit {
+                display: block !important;
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 58mm;
+                font-family: monospace;
+                font-size: 11px;
+                white-space: pre-wrap;
+            }
+        }
+    </style>
+
+    <script>
+        // Heq kodet ESC/POS (bajte kontrolli të papërdorshme për shfaqje HTML)
+        function pastroTekstinPerShfaqje(rawContent) {
+            return rawContent
+                .replace(/\x1B\x40/g, '')
+                .replace(/\x1B\x61[\x00-\x02]/g, '')
+                .replace(/\x1B\x45[\x00-\x01]/g, '')
+                .replace(/\x1D\x21[\x00-\x01]/g, '')
+                .replace(/\x1D\x56\x00/g, '')
+                .trim();
+        }
+
+        function printoMeDialog(rawContent) {
+            const tekstiPastruar = pastroTekstinPerShfaqje(rawContent);
+            const zona = document.getElementById('zonaPrintimit');
+            zona.textContent = tekstiPastruar;
+            zona.style.display = 'block';
+
+            setTimeout(() => {
+                window.print();
+                setTimeout(() => { zona.style.display = 'none'; }, 500);
+            }, 100);
+        }
+
+        document.addEventListener('livewire:init', () => {
+            Livewire.on('printo-bluetooth-fallback', (event) => {
+                printoMeDialog(event.rawContent);
+            });
+        });
+    </script>
+    <script>
+        // Ruajmë lidhjen Bluetooth në memorie gjatë gjithë sesionit
+        let bleCharacteristic = null;
+        let bleDevice = null;
+
+        function perditesoStatusin(lidhur) {
+            const badge = document.getElementById('statusiBluetooth');
+            if (!badge) return;
+            if (lidhur) {
+                badge.textContent = '{{ __("Lidhur") }}';
+                badge.className = 'badge bg-success bg-opacity-10 text-success fs-11';
+            } else {
+                badge.textContent = '{{ __("I Shkëputur") }}';
+                badge.className = 'badge bg-secondary bg-opacity-10 text-secondary fs-11';
+            }
+        }
+
+        // Hapi 1: LIDHJA — kërkohet vetëm me klikim eksplicit të përdoruesit (user gesture)
+        async function lidhPrinterinBluetooth() {
+            try {
+                bleDevice = await navigator.bluetooth.requestDevice({
+                    filters: [
+                        { namePrefix: 'MTP-2' },
+                        { namePrefix: 'PT-210' },
+                        { namePrefix: 'Printer' },
+                        { namePrefix: 'RT' }
+                    ],
+                    optionalServices: [
+                        '0000ff00-0000-1000-8000-00805f9b34fb',
+                        'e7810a71-73ae-499d-8c15-faa9aef0c3f2'
+                    ]
+                });
+
+                const server = await bleDevice.gatt.connect();
+
+                let service;
+                try {
+                    service = await server.getPrimaryService('0000ff00-0000-1000-8000-00805f9b34fb');
+                } catch (e) {
+                    service = await server.getPrimaryService('e7810a71-73ae-499d-8c15-faa9aef0c3f2');
+                }
+
+                try {
+                    bleCharacteristic = await service.getCharacteristic('0000ff02-0000-1000-8000-00805f9b34fb');
+                } catch (e) {
+                    const characteristics = await service.getCharacteristics();
+                    bleCharacteristic = characteristics.find(c => c.properties.write || c.properties.writeWithoutResponse);
+                }
+
+                if (!bleCharacteristic) {
+                    throw new Error('Nuk u gjet karakteristika për shkrim në printer.');
+                }
+
+                perditesoStatusin(true);
+
+                // Nëse printeri shkëputet (fiket, largohet), rivendos statusin
+                bleDevice.addEventListener('gattserverdisconnected', () => {
+                    bleCharacteristic = null;
+                    perditesoStatusin(false);
+                });
+
+                alert('Printeri Bluetooth u lidh me sukses! Tani do përdoret automatikisht si rezervë.');
+            } catch (error) {
+                console.error('Gabim gjatë lidhjes Bluetooth:', error);
+                alert('Dështoi lidhja me printerin: ' + error.message);
+            }
+        }
+
+        // Hapi 2: PRINTIMI — nuk kërkon user gesture, sepse characteristic është tashmë gati
+        async function printoMeBluetooth(rawContent) {
+            if (!bleCharacteristic) {
+                alert('Printeri LAN nuk u përgjigj dhe printeri Bluetooth nuk është i lidhur. Kliko "Lidh Printerin" më parë.');
+                return;
+            }
+
+            try {
+                const ESC = '\x1B';
+                const INIT_PRINTER = ESC + '@';
+                const LINE_FEED = '\n\n\n';
+                const fullContent = INIT_PRINTER + rawContent + LINE_FEED;
+
+                const encoder = new TextEncoder('utf-8');
+                const data = encoder.encode(fullContent);
+
+                const chunkSize = 20;
+                for (let i = 0; i < data.length; i += chunkSize) {
+                    const chunk = data.slice(i, i + chunkSize);
+                    await bleCharacteristic.writeValueWithoutResponse(chunk);
+                    await new Promise(resolve => setTimeout(resolve, 25)); // shmang "GATT busy"
+                }
+
+                console.log('Printimi Bluetooth përfundoi me sukses!');
+            } catch (error) {
+                console.error('Gabim gjatë printimit Bluetooth:', error);
+                alert('Dështoi printimi Bluetooth: ' + error.message);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const btn = document.getElementById('btnLidhBluetooth');
+            if (btn) {
+                btn.addEventListener('click', lidhPrinterinBluetooth);
+            }
+        });
+
+        document.addEventListener('livewire:init', () => {
+            // Fallback automatik: thirret VETËM kur LAN dështon
+            Livewire.on('printo-bluetooth-fallback', (event) => {
+                printoMeBluetooth(event.rawContent);
+            });
+        });
+    </script>
 
 </div>
