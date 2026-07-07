@@ -476,4 +476,23 @@ class KuponParkimiService
 
         return $content;
     }
+
+    public function buildParapagesenRaw(Operacionet $operacioni, TransaksioniOperacionit $transaksioni, string $metodaPageses): string
+    {
+        return $this->buildPagesaContent($operacioni, $transaksioni, $metodaPageses, false, false);
+    }
+
+    public function buildHistorikuRaw(Operacionet $operacioni): string
+    {
+        $operacioni->loadMissing([
+            'operatori',
+            'transaksioni.prenotimi',
+            'transaksioni.fashaOrare',
+            'transaksioni.monedha',
+            'transaksioni.operatori'
+        ]);
+
+        return $this->buildHistorikuContent($operacioni);
+    }
+
 }

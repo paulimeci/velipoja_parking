@@ -184,96 +184,102 @@
         </div>
     </div>
     @if($shfaqModalDetaje)
-        <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);">
-            <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 1050;">
+            <div class="modal-dialog modal-xl modal-dialog-centered">
                 <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden bg-white">
 
                     {{-- HEADER MODAL --}}
                     <div class="modal-header bg-white border-bottom border-light-subtle py-3 px-4">
                         <h5 class="modal-title fw-bold text-dark fs-18 d-flex align-items-center">
-                            <span class="p-2 bg-primary-subtle text-primary rounded-3 me-2 d-inline-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
-                                <i class="ri-history-fill fs-18"></i>
-                            </span>
+                        <span class="p-2 bg-primary-subtle text-primary rounded-3 me-2 d-inline-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                            <i class="ri-history-fill fs-18"></i>
+                        </span>
                             <span>Detajet e Mjeteve për Datën: <span class="text-primary fw-black font-monospace ms-1">{{ $dataEPerzgjedhur }}</span></span>
                         </h5>
                         <button type="button" class="btn-close shadow-none" wire:click="mbyllModalin()"></button>
                     </div>
 
                     {{-- BODY MODAL --}}
-                    <div class="modal-body p-4 bg-white" style="max-height: 70vh; overflow-y: auto;">
+                    <div class="modal-body p-4 bg-white" style="max-height: 75vh; overflow-y: auto;">
                         @if(count($detajetMjeteve) > 0)
                             <div class="table-responsive rounded-3 bg-white border border-light-subtle shadow-sm">
-                                <table class="table align-middle table-hover mb-0">
-                                    <thead class="bg-white border-bottom border-light-subtle text-uppercase text-secondary fs-13 fw-bold tracking-wider">
+                                <table class="table align-middle table-hover mb-0 text-nowrap">
+                                    <thead class="bg-light border-bottom border-light-subtle text-uppercase text-secondary fs-12 fw-bold tracking-wider">
                                     <tr>
-                                        <th scope="col" class="ps-4 py-3">Targa</th>
-                                        <th scope="col">Hyrja</th>
-                                        <th scope="col">Ikja</th>
-                                        <th scope="col">Lloji Qëndrimit</th>
-                                        <th scope="col">Operatori</th> {{-- NEW COLUMN --}}
-                                        <th scope="col" class="text-end pe-4 py-3">Pagesa</th>
-                                        <th scope="col" class="text-end pe-4 py-3">View/Edito</th>
+                                        <th scope="col" class="ps-4 py-3" style="width: 15%;">Targa</th>
+                                        <th scope="col" style="width: 15%;">Hyrja</th>
+                                        <th scope="col" style="width: 15%;">Ikja</th>
+                                        <th scope="col" style="width: 20%;">Lloji Qëndrimit</th>
+                                        <th scope="col" style="width: 15%;">Operatori</th>
+                                        <th scope="col" class="text-end style="width: 10%;">Pagesa</th>
+                                        <th scope="col" class="text-center pe-4" style="width: 10%;">Veprimi</th>
                                     </tr>
                                     </thead>
-                                    <tbody class="fs-15">
+                                    <tbody class="fs-14">
                                     @foreach($detajetMjeteve as $mjeti)
                                         <tr>
                                             <td class="ps-4 py-3">
-                                                <div class="d-inline-flex align-items-center bg-white border border-dark border-opacity-75 rounded shadow-sm px-3 py-1" style="height: 34px;">
-                    <span class="fs-15 fw-black text-dark font-monospace text-uppercase" style="letter-spacing: 0.8px;">
-                        {{ $mjeti['targa'] }}
-                    </span>
+                                                <div class="d-inline-flex align-items-center bg-white border border-dark border-opacity-75 rounded shadow-sm px-3 py-1" style="height: 32px;">
+                                                <span class="fs-14 fw-black text-dark font-monospace text-uppercase" style="letter-spacing: 0.8px;">
+                                                    {{ $mjeti['targa'] }}
+                                                </span>
                                                 </div>
                                             </td>
+
                                             <td class="text-dark py-3">
                                                 <div class="d-flex align-items-center">
                                                     <i class="ri-login-box-line text-success opacity-75 me-2 fs-16"></i>
                                                     <div>
-                                                        <span class="fw-bold text-dark fs-15">{{ \Carbon\Carbon::parse($mjeti['koha_hyrjes'])->format('H:i') }}</span>
-                                                        <small class="d-block text-muted fs-12 font-monospace">{{ \Carbon\Carbon::parse($mjeti['koha_hyrjes'])->format('d/m/Y') }}</small>
+                                                        <span class="fw-bold text-dark fs-14">{{ \Carbon\Carbon::parse($mjeti['koha_hyrjes'])->format('H:i') }}</span>
+                                                        <small class="d-block text-muted fs-11 font-monospace">{{ \Carbon\Carbon::parse($mjeti['koha_hyrjes'])->format('d/m/Y') }}</small>
                                                     </div>
                                                 </div>
                                             </td>
+
                                             <td class="text-dark py-3">
                                                 <div class="d-flex align-items-center">
                                                     <i class="ri-logout-box-line text-danger opacity-75 me-2 fs-16"></i>
                                                     <div>
-                                                        <span class="fw-bold text-dark fs-15">{{ \Carbon\Carbon::parse($mjeti['koha_ikjes'])->format('H:i') }}</span>
-                                                        <small class="d-block text-muted fs-12 font-monospace">{{ \Carbon\Carbon::parse($mjeti['koha_ikjes'])->format('d/m/Y') }}</small>
+                                                        <span class="fw-bold text-dark fs-14">{{ \Carbon\Carbon::parse($mjeti['koha_ikjes'])->format('H:i') }}</span>
+                                                        <small class="d-block text-muted fs-11 font-monospace">{{ \Carbon\Carbon::parse($mjeti['koha_ikjes'])->format('d/m/Y') }}</small>
                                                     </div>
                                                 </div>
                                             </td>
+
                                             <td class="py-3">
-                                                <div class="d-flex align-items-center gap-2">
-        <span class="badge bg-indigo-subtle text-indigo border border-indigo-subtle rounded-pill fs-13 fw-semibold px-3 py-1.5"
-              style="background-color: #e0e7ff; color: #4338ca; border-color: #c7d2fe;">
-            {{ $mjeti['lloji_qendrimit'] }}
-        </span>
+                                                <div class="d-inline-flex align-items-center gap-1.5 flex-wrap">
+                                                <span class="badge bg-indigo-subtle text-indigo border border-indigo-subtle rounded-pill fs-12 fw-semibold px-2.5 py-1"
+                                                      style="background-color: #e0e7ff; color: #4338ca; border-color: #c7d2fe;">
+                                                    {{ $mjeti['lloji_qendrimit'] }}
+                                                </span>
 
                                                     @if($mjeti['njesia_matjes'] === 'dite' && !empty($mjeti['sasia']))
-                                                        <span class="badge bg-warning bg-opacity-10 text-warning-emphasis border border-warning-subtle rounded-3 fs-12 fw-bold font-monospace px-2 py-1">
-                x{{ $mjeti['sasia'] }} {{ $mjeti['sasia'] > 1 ? __('Ditë') : __('Ditë') }}
-            </span>
+                                                        <span class="badge bg-warning bg-opacity-10 text-warning-emphasis border border-warning-subtle rounded-3 fs-11 fw-bold font-monospace px-2 py-0.5">
+                                                        x{{ $mjeti['sasia'] }} {{ __('Ditë') }}
+                                                    </span>
                                                     @endif
                                                 </div>
                                             </td>
-                                            {{-- NEW TD: Shfaq emrin e operatorit me një ikonë personi --}}
+
                                             <td class="py-3 text-secondary fw-medium">
                                                 <div class="d-flex align-items-center gap-1">
-                                                    <i class="ri-user-received-2-line text-primary opacity-75 fs-16"></i>
-                                                    <span>{{ $mjeti['emri_operatorit'] ?? __('Pa emër') }}</span>
+                                                    <i class="ri-user-received-2-line text-primary opacity-75 fs-15"></i>
+                                                    <span class="fs-13 text-truncate" style="max-width: 120px;" title="{{ $mjeti['emri_operatorit'] }}">
+                                                    {{ $mjeti['emri_operatorit'] ?? __('Pa emër') }}
+                                                </span>
                                                 </div>
                                             </td>
-                                            <td class="text-end pe-4 py-3 fw-bold text-dark fs-16">
+
+                                            <td class="text-end py-3 fw-bold text-dark fs-15">
                                                 <span class="text-success-emphasis font-monospace fw-black">{{ number_format($mjeti['shuma'], 2) }}</span>
-                                                <small class="text-secondary fw-bold fs-12 ms-1">{{ $mjeti['monedha_kodi'] }}</small>
+                                                <small class="text-secondary fw-bold fs-11 ms-1">{{ $mjeti['monedha_kodi'] }}</small>
                                             </td>
-                                            {{-- Te tabela e modalit të parë, zëvendëso <td></td> e fundit me këtë: --}}
-                                            <td class="text-end pe-4 py-3">
+
+                                            <td class="text-center pe-4 py-3">
                                                 <button type="button"
                                                         wire:click="editoTransaksionin({{ $mjeti['transaksioni_id'] }})"
-                                                        class="btn btn-sm btn-outline-warning rounded-3 fw-semibold">
-                                                    <i class="ri-edit-box-line"></i> Edito
+                                                        class="btn btn-sm btn-warning bg-warning bg-opacity-10 text-warning-emphasis border border-warning-subtle rounded-3 fw-semibold px-3 py-1 d-inline-flex align-items-center gap-1">
+                                                    <i class="ri-edit-box-line fs-14"></i> {{ __('Edito') }}
                                                 </button>
                                             </td>
                                         </tr>
