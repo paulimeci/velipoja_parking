@@ -25,7 +25,7 @@
     <link rel="icon" type="image/png" href="{{ asset('assets/images/favicon.png') }}">
 
     <!-- Title -->
-    <title>@yield('title', 'Trezo - Dashboard')</title>
+    <title>@yield('title', 'Velipoja - Parking')</title>
 
     @livewireStyles
 </head>
