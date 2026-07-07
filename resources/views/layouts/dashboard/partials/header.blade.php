@@ -120,11 +120,7 @@
                     </li>
 
                     <!-- Settings -->
-                    <li class="header-right-item">
-                        <button class="theme-settings-btn p-0 border-0 bg-transparent" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasScrolling">
-                            <i class="material-symbols-outlined">settings</i>
-                        </button>
-                    </li>
+
                 </ul>
             </div>
         </div>
