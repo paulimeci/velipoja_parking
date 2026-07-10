@@ -495,4 +495,34 @@ class KuponParkimiService
         return $this->buildHistorikuContent($operacioni);
     }
 
+    public function buildPagesenShteseRaw(Operacionet $operacioni, TransaksioniOperacionit $transaksioniShtese): string
+    {
+        $monedha = $transaksioniShtese->monedhaRelacion->kodi ?? 'ALL';
+        $data = now()->format('d/m/Y H:i');
+
+        $esc = "\x1B\x40"; // Init printer
+        $boldOn = "\x1B\x45\x01";
+        $boldOff = "\x1B\x45\x00";
+        $center = "\x1B\x61\x01";
+        $left = "\x1B\x61\x00";
+        $cut = "\x1D\x56\x00";
+
+        $raw = $esc;
+        $raw .= $center . $boldOn . "PAGESE SHTESE\n" . $boldOff;
+        $raw .= "--------------------------------\n";
+        $raw .= $left;
+        $raw .= "Targa:      " . $operacioni->targa . "\n";
+        $raw .= "Data:       " . $data . "\n";
+        $raw .= "--------------------------------\n";
+        $raw .= $boldOn;
+        $raw .= "SHTESE:     +" . number_format($transaksioniShtese->vlera, 2) . " " . $monedha . "\n";
+        $raw .= $boldOff;
+        $raw .= "TOTALI I PAGUAR: " . number_format($operacioni->vlera_totale_paguar, 2) . " " . $monedha . "\n";
+        $raw .= "--------------------------------\n";
+        $raw .= $center . "Faleminderit!\n\n\n";
+        $raw .= $cut;
+
+        return $raw;
+    }
+
 }

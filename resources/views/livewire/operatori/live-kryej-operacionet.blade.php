@@ -76,79 +76,100 @@
     </div>
 </div>
 
-<div class="row gx-2 gy-2">
+    <div class="row gx-2 gy-2">
 
-    @forelse($mjetePrezent as $mjeti)
-        {{-- Shtohet wire:key që Livewire të njohë saktë secilën kartë dhe të mos bllokojë DOM-in pas largimit --}}
-        <div class="col-xxl-2 col-xl-2 col-lg-3 col-md-4 col-sm-6 col-6" wire:key="mjeti-{{ $mjeti->id }}">
-            <div class="card bg-primary bg-opacity-10 border-0 rounded-3 mb-2 file-for-dark shadow-sm">
-                <div class="card-body p-2.5">
+        @forelse($mjetePrezent as $mjeti)
+            @php
+                $statusi = $this->statusiSkadimit($mjeti);
+            @endphp
+            <div class="col-xxl-2 col-xl-2 col-lg-3 col-md-4 col-sm-6 col-6" wire:key="mjeti-{{ $mjeti->id }}">
+                <div class="card {{ $statusi['skaduar'] ? 'bg-warning bg-opacity-10' : 'bg-primary bg-opacity-10' }} border-0 rounded-3 mb-2 file-for-dark shadow-sm">
+                    <div class="card-body p-2.5">
 
-                    {{-- SEKSIONI SIPËR: STATUSI DHE ORA NË KRAH --}}
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div class="d-flex align-items-center gap-1">
-                        <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-1.5 py-0.5 fs-10 fw-medium">
-                            <i class="ri-checkbox-blank-circle-fill fs-7 align-middle me-0.5"></i>{{ __('Prezent') }}
-                        </span>
-                            <span class="text-secondary fw-medium" style="font-size: 11px;">
-                            {{ \Carbon\Carbon::parse($mjeti->nisja)->format('H:i') }}
-                        </span>
+                        {{-- SEKSIONI SIPËR: STATUSI DHE ORA NË KRAH --}}
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center gap-1">
+                                @if($statusi['skaduar'])
+                                    <span class="badge bg-warning bg-opacity-25 rounded-pill px-1.5 py-0.5 fs-10 fw-bold" style="color:#997404;">
+                                    <i class="ri-alarm-warning-fill fs-7 align-middle me-0.5"></i>{{ __('Skaduar') }}
+                                </span>
+                                @else
+                                    <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-1.5 py-0.5 fs-10 fw-medium">
+                                    <i class="ri-checkbox-blank-circle-fill fs-7 align-middle me-0.5"></i>{{ __('Prezent') }}
+                                </span>
+                                @endif
+                                <span class="text-secondary fw-medium" style="font-size: 11px;">
+                                {{ \Carbon\Carbon::parse($mjeti->nisja)->format('H:i') }}
+                            </span>
+                            </div>
+
+                            {{-- Menuja e opsioneve (Dropdown) --}}
+                            <div class="dropdown action-opt">
+                                <button class="p-0 border-0 bg-transparent line-height-1" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="material-symbols-outlined text-body hover fs-18">more_horiz</i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end bg-white border box-shadow py-1">
+                                    <li><a class="dropdown-item py-1 fs-12" href="javascript:void(0);">{{ __('Detajet') }}</a></li>
+                                    <li><a class="dropdown-item py-1 fs-12" href="javascript:void(0);">{{ __('Edito') }}</a></li>
+                                    <li><hr class="dropdown-divider my-1"></li>
+                                    <li>
+                                        <a class="dropdown-item text-danger py-1 fs-12" href="javascript:void(0);"
+                                           wire:click="largoMjetin({{ $mjeti->id }})"
+                                           wire:confirm="A je i sigurt që dëshiron ta largosh këtë mjet?">
+                                            {{ __('Largo') }}
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
 
-                        {{-- Menuja e opsioneve (Dropdown) --}}
-                        <div class="dropdown action-opt">
-                            <button class="p-0 border-0 bg-transparent line-height-1" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="material-symbols-outlined text-body hover fs-18">more_horiz</i>
+                        {{-- SEKSIONI QENDROR: TARGA --}}
+                        <div class="text-center py-2.5 my-1">
+                            <div class="d-inline-flex align-items-center justify-content-center bg-white border {{ $statusi['skaduar'] ? 'border-warning' : 'border-dark' }} border-2 rounded-2 w-100 shadow-sm"
+                                 style="height: 40px; cursor: pointer;"
+                                 wire:click="shfaqModalPagesen({{ $mjeti->id }})">
+                            <span class="fs-18 fw-bolder text-dark font-monospace text-uppercase" style="letter-spacing: 0.8px;">
+                                {{ $mjeti->targa }}
+                            </span>
+                            </div>
+                        </div>
+
+                        {{-- SEKSIONI POSHTË: STATUSI I PAGESËS --}}
+                        <div class="d-flex justify-content-between align-items-center border-top border-dark border-opacity-10 pt-1.5">
+                            <span class="fs-10 text-secondary">{{ __('Pagesa') }}:</span>
+                            @if($statusi['skaduar'])
+                                <span class="badge bg-warning bg-opacity-25 rounded-2 px-1.5 py-0.5 fs-10 fw-bold" style="color:#997404;" title="{{ __('Ka kaluar koha e paguar') }}">
+                                <i class="ri-time-line me-1"></i>{{ __('Skaduar') }}
+                            </span>
+                            @elseif($statusi['paguar'])
+                                <span class="badge bg-success bg-opacity-10 text-success rounded-2 px-1.5 py-0.5 fs-10 fw-bold">
+                                {{ __('Paguar') }}
+                            </span>
+                            @else
+                                <span class="badge bg-danger bg-opacity-10 text-danger rounded-2 px-1.5 py-0.5 fs-10 fw-bold">
+                                {{ __('Pa Paguar') }}
+                            </span>
+                            @endif
+                        </div>
+
+                        {{-- NEW: buton shtesë kur ka skaduar, për rinovim të shpejtë --}}
+                        @if($statusi['skaduar'])
+                            <button type="button"
+                                    wire:click="shfaqModalPagesen({{ $mjeti->id }})"
+                                    class="btn btn-warning btn-sm w-100 mt-2 py-1 fs-11 fw-bold rounded-2">
+                                <i class="ri-refresh-line me-1"></i>{{ __('Rinovo Pagesën') }}
                             </button>
-                            <ul class="dropdown-menu dropdown-menu-end bg-white border box-shadow py-1">
-                                <li><a class="dropdown-item py-1 fs-12" href="javascript:void(0);">{{ __('Detajet') }}</a></li>
-                                <li><a class="dropdown-item py-1 fs-12" href="javascript:void(0);">{{ __('Edito') }}</a></li>
-                                <li><hr class="dropdown-divider my-1"></li>
-                                <li>
-                                    <a class="dropdown-item text-danger py-1 fs-12" href="javascript:void(0);"
-                                       wire:click="largoMjetin({{ $mjeti->id }})"
-                                       wire:confirm="A je i sigurt që dëshiron ta largosh këtë mjet?">
-                                        {{ __('Largo') }}
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    {{-- SEKSIONI QENDROR: TARGA --}}
-                    <div class="text-center py-2.5 my-1">
-                        <div class="d-inline-flex align-items-center justify-content-center bg-white border border-dark border-2 rounded-2 w-100 shadow-sm"
-                             style="height: 40px; cursor: pointer;"
-                             wire:click="shfaqModalPagesen({{ $mjeti->id }})">
-                        <span class="fs-18 fw-bolder text-dark font-monospace text-uppercase" style="letter-spacing: 0.8px;">
-                            {{ $mjeti->targa }}
-                        </span>
-                        </div>
-                    </div>
-
-                    {{-- SEKSIONI POSHTË: STATUSI I PAGESËS --}}
-                    <div class="d-flex justify-content-between align-items-center border-top border-dark border-opacity-10 pt-1.5">
-                        <span class="fs-10 text-secondary">{{ __('Pagesa') }}:</span>
-                        @if(isset($mjeti->transaksioni) && $mjeti->transaksioni->status_pagesa === 'paguar')
-                            <span class="badge bg-success bg-opacity-10 text-success rounded-2 px-1.5 py-0.5 fs-10 fw-bold">
-                            {{ __('Paguar') }}
-                        </span>
-                        @else
-                            <span class="badge bg-danger bg-opacity-10 text-danger rounded-2 px-1.5 py-0.5 fs-10 fw-bold">
-                            {{ __('Pa Paguar') }}
-                        </span>
                         @endif
-                    </div>
 
+                    </div>
                 </div>
             </div>
-        </div>
-    @empty
-        <div class="col-12">
-            <p class="text-secondary text-center py-4 bg-white rounded-3 border">{{ __('Nuk u gjet asnjë mjet prezent.') }}</p>
-        </div>
-    @endforelse
-</div>
+        @empty
+            <div class="col-12">
+                <p class="text-secondary text-center py-4 bg-white rounded-3 border">{{ __('Nuk u gjet asnjë mjet prezent.') }}</p>
+            </div>
+        @endforelse
+    </div>
 
 {{-- ═══════════════════════════════════════
       SEKSIONI 3: MODAL POP-UP (PAGESA / MBYLLJA)
@@ -310,6 +331,115 @@
         </div>
     </div>
 @endif
+
+
+    {{-- ═══════════════════════════════════════
+          MODAL POP-UP: SKADIMI I KOHËS SË PAGUAR
+         ════════════════════════════════════════ --}}
+    @if($shfaqModalSkadimi && $mjetiSkaduarZgjedhur)
+        <div class="modal fade show d-block" id="modalSkadimi" tabindex="-1" role="dialog" style="background: rgba(0,0,0,0.6); z-index: 1075;">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 bg-white shadow rounded-3" style="border: 2px solid #ffc107 !important;">
+
+                    <div class="modal-header border-bottom p-4" style="background: rgba(255,193,7,0.08);">
+                        <h5 class="modal-title fs-16 fw-bold text-dark mb-0">
+                            <i class="ri-alarm-warning-fill align-middle me-1 text-warning fs-22"></i>
+                            {{ __('Koha e Paguar Ka Skaduar!') }}
+                        </h5>
+                        <button type="button" class="btn-close shadow-none" wire:click="mbyllModalSkadimi"></button>
+                    </div>
+
+                    <div class="modal-body p-4">
+                        <div class="text-center mb-3">
+                            <div class="d-inline-flex align-items-center justify-content-center bg-light border border-dark border-2 rounded-2 px-4 py-1" style="min-width: 160px; height: 45px;">
+                            <span class="fs-20 fw-black text-dark font-monospace text-uppercase" style="letter-spacing: 0.8px;">
+                                {{ $mjetiSkaduarZgjedhur->targa }}
+                            </span>
+                            </div>
+                        </div>
+
+                        @php
+                            $oreLejuara = $detajetSkadimit['oreLejuara'] ?? 0;
+                            $oreReale = $detajetSkadimit['oreReale'] ?? 0;
+                            $teper = max($oreReale - $oreLejuara, 0);
+                            $vleraEPaguar = $mjetiSkaduarZgjedhur->transaksioni->vlera ?? 0;
+                            $kodiMonedhes = $mjetiSkaduarZgjedhur->transaksioni->monedhaRelacion->kodi ?? '';
+                            $totaliIRi = $vleraEPaguar + $vlera_shtese;
+                        @endphp
+
+                        <table class="table table-sm table-borderless fs-13 mb-3">
+                            <tbody>
+                            <tr class="border-bottom border-light">
+                                <td class="text-secondary py-2 fw-medium">{{ __('Koha e Hyrjes') }}:</td>
+                                <td class="text-dark py-2 fw-semibold text-end">
+                                    {{ \Carbon\Carbon::parse($mjetiSkaduarZgjedhur->nisja)->format('d/m/Y H:i') }}
+                                </td>
+                            </tr>
+                            <tr class="border-bottom border-light">
+                                <td class="text-secondary py-2 fw-medium">{{ __('Ora e Lejuar (Paguar)') }}:</td>
+                                <td class="text-dark py-2 fw-semibold text-end">{{ round($oreLejuara, 2) }} {{ __('orë') }}</td>
+                            </tr>
+                            <tr class="border-bottom border-light">
+                                <td class="text-secondary py-2 fw-medium">{{ __('Koha Reale e Qëndrimit') }}:</td>
+                                <td class="text-dark py-2 fw-semibold text-end">{{ round($oreReale, 2) }} {{ __('orë') }}</td>
+                            </tr>
+                            <tr class="bg-danger bg-opacity-10">
+                                <td class="text-danger py-2 fw-bold">{{ __('Tejkalimi') }}:</td>
+                                <td class="text-danger py-2 fw-bold text-end">+{{ round($teper, 2) }} {{ __('orë') }}</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                        <div class="bg-warning bg-opacity-10 border border-warning rounded-3 p-3 mb-3">
+                            <label class="label text-dark fw-bold mb-2 fs-13">
+                                <i class="ri-edit-2-line me-1"></i>{{ __('Vlera Shtesë për t\'u Paguar') }}
+                            </label>
+                            <div class="input-group input-group-lg">
+                                <span class="input-group-text bg-warning bg-opacity-25 fw-bold border-warning">+</span>
+                                <input type="number" step="0.01" min="0" wire:model.live="vlera_shtese"
+                                       class="form-control fw-bolder text-warning fs-20 border-warning @error('vlera_shtese') is-invalid @enderror">
+                                <span class="input-group-text bg-warning bg-opacity-25 fw-bold border-warning">{{ $kodiMonedhes }}</span>
+                            </div>
+                            @error('vlera_shtese') <div class="invalid-feedback d-block mt-1 fs-12">{{ $message }}</div> @enderror
+                            <p class="text-secondary fs-11 mt-2 mb-0">{{ __('Vlera u sugjerua automatikisht, por mund ta ndryshoni.') }}</p>
+                        </div>
+
+                        <table class="table table-sm table-borderless fs-13 mb-0">
+                            <tbody>
+                            <tr class="border-bottom border-light">
+                                <td class="text-secondary py-2 fw-medium">{{ __('Vlera e Paguar') }}:</td>
+                                <td class="text-dark py-2 fw-semibold text-end">{{ number_format($vleraEPaguar, 2) }} {{ $kodiMonedhes }}</td>
+                            </tr>
+                            <tr class="border-bottom border-light">
+                                <td class="text-warning py-2 fw-bold">{{ __('Vlera Shtesë (sugjeruar)') }}:</td>
+                                <td class="text-warning py-2 fw-bold text-end">+ {{ number_format($vlera_shtese, 2) }} {{ $kodiMonedhes }}</td>
+                            </tr>
+                            <tr class="bg-success bg-opacity-10 rounded-2">
+                                <td class="text-success py-2 fw-bold ps-2">{{ __('TOTALI I RI') }}:</td>
+                                <td class="text-success py-2 fw-bolder text-end pe-2 fs-15">{{ number_format($totaliIRi, 2) }} {{ $kodiMonedhes }}</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="modal-footer border-top p-3 d-flex flex-column gap-2 bg-light bg-opacity-50">
+                        <button type="button" class="btn btn-success w-100 py-2 fs-13 fw-semibold rounded-3" wire:click="ruajPagesenShtese">
+                            <span wire:loading wire:target="ruajPagesenShtese" class="spinner-border spinner-border-sm me-1"></span>
+                            <i class="ri-add-circle-line me-1"></i> {{ __('Regjistro Pagesën Shtesë') }}
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary w-100 py-2 fs-13 fw-semibold rounded-3" wire:click="injoroVlerenShtese">
+                            <i class="ri-close-circle-line me-1"></i> {{ __('Injoro Shtesën (Tejkalim i Vogël)') }}
+                        </button>
+                        <button type="button" class="btn btn-link text-secondary w-100 py-1 fs-12" wire:click="mbyllModalSkadimi">
+                            {{ __('Anulo') }}
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    @endif
+
+
 {{-- ═══════════════════════════════════════
           SEKSIONI I RI: MJETET E SHËRBYERA (LARGUR)
          ════════════════════════════════════════ --}}

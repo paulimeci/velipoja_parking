@@ -44,6 +44,14 @@ class LiveKryejOperacionet extends Component
 
     public $mjetiLarguarZgjedhur = null;
     public $shfaqModalDetajet = false;
+
+    public $shfaqModalSkadimi = false;
+    public $mjetiSkaduarZgjedhur = null;
+    public $detajetSkadimit = [];
+    public $vlera_shtese = 0;
+
+    public $shtese_id_fasha = null;
+    public $shtese_sasia = null;
     public function mount()
     {
         $kategoriaDefault = KategoriaPageses::where('is_default', 1)->first();
@@ -103,12 +111,25 @@ class LiveKryejOperacionet extends Component
 
     public function shfaqModalPagesen($id)
     {
-        $operacioni = Operacionet::find($id);
+        $operacioni = Operacionet::with(['transaksioni.prenotimi', 'transaksioni.fashaOrare', 'transaksioni.monedha'])->find($id);
 
-        if ($operacioni) {
-            $this->eshteRegjistrimParaprak = false; // kjo është mbyllja reale
-            $this->inicializoModalinPerOperacionin($operacioni);
+        if (!$operacioni) {
+            return;
         }
+
+        $statusi = $this->statusiSkadimit($operacioni);
+
+        // NEW: nëse koha e paguar ka skaduar, hap modalin e skadimit në vend të atij normal
+        if ($statusi['skaduar']) {
+            $this->mjetiSkaduarZgjedhur = $operacioni;
+            $this->detajetSkadimit = $statusi;
+            $this->llogaritVlerenShtese($operacioni, $statusi);
+            $this->shfaqModalSkadimi = true;
+            return;
+        }
+
+        $this->eshteRegjistrimParaprak = false;
+        $this->inicializoModalinPerOperacionin($operacioni);
     }
 
     private function inicializoModalinPerOperacionin(Operacionet $operacioni)
@@ -334,6 +355,193 @@ class LiveKryejOperacionet extends Component
 
         return (int) ceil($oreReale / $oreNjesie);
     }
+
+
+    // NEW: kontrollon nëse koha e paguar (fasha orare ose sasia*orëNjësie) është kaluar
+    public function statusiSkadimit(Operacionet $mjeti): array
+    {
+        $transaksioni = $mjeti->transaksioni;
+
+        if (!$transaksioni) {
+            return ['skaduar' => false, 'paguar' => false, 'oreLejuara' => null, 'oreReale' => null];
+        }
+
+        $hyrja = Carbon::parse($mjeti->nisja);
+        $tani  = Carbon::now();
+        $oreReale = max($hyrja->diffInMinutes($tani) / 60, 0);
+
+        $kategoria = $transaksioni->prenotimi; // relacioni id_prenotimit -> KategoriaPageses
+        $oreLejuara = null;
+
+        if ($kategoria && $kategoria->eshteNjesiaDite()) {
+            // Kategori Ditë/Natë/Ditë_Natë — orëtLejuara = orëNjësie x sasia
+            // p.sh. Ditë(12h) x 1 = 12 | Ditë_Natë(24h) x 5 = 120
+            $oreNjesie = $kategoria->oreNjesiReale();
+            $sasia = $transaksioni->sasia ?? 1;
+            $oreLejuara = $oreNjesie * $sasia;
+        } elseif ($transaksioni->fashaOrare) {
+            // Kategori Orë — orëtLejuara = kufiri i sipërm i fashës së paguar
+            $oreLejuara = $transaksioni->fashaOrare->ne;
+        }
+
+        $skaduar = $oreLejuara !== null && $oreReale > $oreLejuara;
+
+        return [
+            'skaduar'    => $skaduar,
+            'paguar'     => $transaksioni->status_pagesa === 'paguar',
+            'oreLejuara' => $oreLejuara,
+            'oreReale'   => round($oreReale, 2),
+        ];
+    }
+
+    // NEW: llogarit sa duhet paguar shtesë krahasuar me vlerën ekzistuese të paguar
+    private function llogaritVlerenShtese(Operacionet $operacioni, array $statusi): void
+    {
+        $transaksioni = $operacioni->transaksioni;
+
+        if (!$transaksioni) {
+            $this->vlera_shtese = 0;
+            return;
+        }
+
+        $kategoria   = $transaksioni->prenotimi;
+        $monedhaId   = $transaksioni->monedha;
+        $vleraEPaguar = $operacioni->vlera_totale_paguar; // NEW: totali real i paguar deri tani
+        $vleraQeDuhet = 0;
+
+        if ($kategoria && $kategoria->eshteNjesiaDite()) {
+            $oreNjesie    = $kategoria->oreNjesiReale();
+            $sasiaQeDuhet = (int) ceil($statusi['oreReale'] / $oreNjesie);
+            $this->shtese_sasia = $sasiaQeDuhet;
+            $this->shtese_id_fasha = null;
+
+            $njesiaCmimi = \App\Models\Admin\OretCmimi::where('id_kategoria_rezervimit', $kategoria->id)->first();
+            $cmimiNjesi  = $njesiaCmimi
+                ? ($njesiaCmimi->cmimet()->where('monedha_id', $monedhaId)->first()->vlera ?? 0)
+                : 0;
+
+            $vleraQeDuhet = $cmimiNjesi * $sasiaQeDuhet;
+        } elseif ($kategoria) {
+            $fashaEPershtatshme = \App\Models\Admin\OretCmimi::where('id_kategoria_rezervimit', $kategoria->id)
+                ->orderBy('nga')
+                ->get()
+                ->first(fn($fasha) => $statusi['oreReale'] >= $fasha->nga && $statusi['oreReale'] <= $fasha->ne);
+
+            if (!$fashaEPershtatshme) {
+                $fashaEPershtatshme = \App\Models\Admin\OretCmimi::where('id_kategoria_rezervimit', $kategoria->id)
+                    ->orderBy('ne', 'desc')->first();
+            }
+
+            $this->shtese_id_fasha = $fashaEPershtatshme?->id;
+            $this->shtese_sasia = 1;
+
+            $vleraQeDuhet = $fashaEPershtatshme
+                ? ($fashaEPershtatshme->cmimet()->where('monedha_id', $monedhaId)->first()->vlera ?? 0)
+                : 0;
+        }
+
+        // NEW: vlera e sugjeruar, por editueshme më pas nga operatori
+        $this->vlera_shtese = max(round($vleraQeDuhet - $vleraEPaguar, 2), 0);
+    }
+
+
+    public function ruajPagesenShtese()
+    {
+        $this->validate([
+            'vlera_shtese' => 'required|numeric|min:0.01',
+        ], [
+            'vlera_shtese.required' => 'Ju lutem vendosni vlerën shtesë.',
+            'vlera_shtese.min'      => 'Vlera shtesë duhet të jetë më e madhe se 0.',
+        ]);
+
+        if (!$this->mjetiSkaduarZgjedhur || !$this->mjetiSkaduarZgjedhur->transaksioni) {
+            return;
+        }
+
+        $operacioni = $this->mjetiSkaduarZgjedhur;
+        $transaksioniOriginal = $operacioni->transaksioni;
+
+        // 1. Regjistro pagesën shtesë si rresht i ri
+        $transaksioniShtese = TransaksioniOperacionit::create([
+            'id_operacionit'  => $operacioni->id,
+            'id_prenotimit'   => $transaksioniOriginal->id_prenotimit,
+            'id_fashes_orare' => $this->shtese_id_fasha ?? $transaksioniOriginal->id_fashes_orare,
+            'sasia'           => $this->shtese_sasia ?? $transaksioniOriginal->sasia,
+            'status_pagesa'   => 'pagese_shtese',
+            'monedha'         => $transaksioniOriginal->monedha,
+            'vlera'           => $this->vlera_shtese,
+        ]);
+
+        // 2. NEW: gjurmo ndryshimin e operatorit, njësoj si te ruajTransaksionin()
+        $operatoriOrigjinal = $operacioni->id_operatori;
+        $operatoriAktual    = Auth::id();
+
+        if ($operatoriOrigjinal && $operatoriOrigjinal != $operatoriAktual) {
+            \App\Models\Admin\NdryshimiOperatorit::create([
+                'id_transaksionit' => $transaksioniShtese->id,
+                'operatori_pare'   => $operatoriOrigjinal,
+                'operatori_dyte'   => $operatoriAktual,
+                'pagesa_e_re'      => $this->vlera_shtese,
+            ]);
+
+            $operacioni->id_operatori = $operatoriAktual;
+        }
+
+        // 3. NEW: mbyll operacionin — ora aktuale e ikjes + statusi larguar
+        $operacioni->ikja = now();
+        $operacioni->status = 'larguar';
+        $operacioni->save();
+
+        // 4. Printimi i kuponit
+        $rawContent = app(KuponParkimiService::class)->buildPagesenShteseRaw($operacioni, $transaksioniShtese);
+        $this->dispatch('printo-ne-bluetooth', rawContent: $rawContent);
+
+        session()->flash('success', 'Operacioni u mbyll me sukses! Pagesë shtesë: +' . number_format($this->vlera_shtese, 2) . ' ' . ($transaksioniOriginal->monedhaRelacion->kodi ?? ''));
+
+        $this->mbyllModalSkadimi();
+    }
+
+
+// NEW: përdoruesi zgjedh të shtojë vlerën shtesë mbi çmimin origjinal
+    public function shtoVlerenShtese()
+    {
+        if (!$this->mjetiSkaduarZgjedhur) {
+            return;
+        }
+
+        $this->eshteRegjistrimParaprak = false;
+        $this->inicializoModalinPerOperacionin($this->mjetiSkaduarZgjedhur);
+
+        // Mbishkruajmë vlerën me: e paguara ekzistuese + shtesa e llogaritur
+        $vleraEPaguarEkzistuese = $this->mjetiSkaduarZgjedhur->transaksioni->vlera ?? 0;
+        $this->modal_vlera = round($vleraEPaguarEkzistuese + $this->vlera_shtese, 2);
+
+        $this->mbyllModalSkadimi();
+    }
+
+// NEW: përdoruesi zgjedh të injorojë tejkalimin e vogël dhe vazhdon normalisht
+    public function injoroVlerenShtese()
+    {
+        if (!$this->mjetiSkaduarZgjedhur) {
+            return;
+        }
+
+        $this->eshteRegjistrimParaprak = false;
+        $this->inicializoModalinPerOperacionin($this->mjetiSkaduarZgjedhur);
+
+        $this->mbyllModalSkadimi();
+    }
+
+// NEW: mbyll modalin e skadimit pa vazhduar (Anulo)
+    public function mbyllModalSkadimi()
+    {
+        $this->shfaqModalSkadimi = false;
+        $this->mjetiSkaduarZgjedhur = null;
+        $this->detajetSkadimit = [];
+        $this->vlera_shtese = 0;
+    }
+
+
     // ════════════════════════════════════════════════
     // Ruajtja e transaksionit — tani vepron ndryshe në bazë të flag-ut
     // ════════════════════════════════════════════════
@@ -539,6 +747,8 @@ class LiveKryejOperacionet extends Component
     {
         // 1. Mjetet që janë aktualisht në parking (Kodi ekzistues)
         $mjetePrezent = Operacionet::where('status', 'prezent')
+            ->with(['transaksioni.prenotimi', 'transaksioni.fashaOrare', 'transaksioni.monedha'])
+
             ->when($this->kerkoTarge, function($query) {
                 $query->where('targa', 'like', '%' . strtoupper($this->kerkoTarge) . '%');
             })
