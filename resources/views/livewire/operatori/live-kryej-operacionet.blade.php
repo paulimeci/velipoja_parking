@@ -389,6 +389,8 @@
                             </tr>
                             </tbody>
                         </table>
+
+                        {{-- NEW: një kuti e vetme, editueshme, pa dyfishim --}}
                         <div class="bg-warning bg-opacity-10 border border-warning rounded-3 p-3 mb-3">
                             <label class="label text-dark fw-bold mb-2 fs-13">
                                 <i class="ri-edit-2-line me-1"></i>{{ __('Vlera Shtesë për t\'u Paguar') }}

@@ -46,4 +46,22 @@ class Operacionet extends Model
     public function operatori (): BelongsTo {
         return $this->belongsTo(User::class, 'id_operatori');
     }
+
+    public function transaksioniOriginal()
+    {
+        return $this->hasOne(TransaksioniOperacionit::class, 'id_operacionit')
+            ->where('status_pagesa', 'paguar')
+            ->oldestOfMany();
+    }
+
+    public function transaksionetShtese()
+    {
+        return $this->hasMany(TransaksioniOperacionit::class, 'id_operacionit')
+            ->where('status_pagesa', 'pagese_shtese');
+    }
+
+    public function getVleraShteseTotaleAttribute()
+    {
+        return $this->transaksionetShtese->sum('vlera');
+    }
 }
