@@ -37,4 +37,17 @@ class TransaksioniOperacionit extends Model
     public function operacioni(){
         return $this->belongsTo(Operacionet::class, 'id_operacionit');
     }
+
+    // App\Models\Admin\Operacionet
+    public function transaksionet()
+    {
+        return $this->hasMany(TransaksioniOperacionit::class, 'id_operacionit');
+    }
+
+    public function getVleraTotalePaguarAttribute()
+    {
+        return $this->transaksionet()
+            ->whereIn('status_pagesa', ['paguar', 'pagese_shtese'])
+            ->sum('vlera');
+    }
 }

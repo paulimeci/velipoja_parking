@@ -402,7 +402,7 @@
                                 <span class="input-group-text bg-warning bg-opacity-25 fw-bold border-warning">{{ $kodiMonedhes }}</span>
                             </div>
                             @error('vlera_shtese') <div class="invalid-feedback d-block mt-1 fs-12">{{ $message }}</div> @enderror
-                            <p class="text-secondary fs-11 mt-2 mb-0">{{ __('Vlera u sugjerua automatikisht, por mund ta ndryshoni.') }}</p>
+                            <p class="text-secondary fs-11 mt-2 mb-0">{{ __('Kjo është VLERA TOTALE shtesë që do të regjistrohet si 1 pagesë. Mund ta ndryshoni.') }}</p>
                         </div>
 
                         <table class="table table-sm table-borderless fs-13 mb-0">
@@ -511,8 +511,8 @@
                                 <span>{{ __('Hyrja') }}: <b>{{ \Carbon\Carbon::parse($mLarguar->nisja)->format('H:i') }}</b></span>
                                 @if($mLarguar->transaksioni)
                                     <span class="text-dark fw-bold">
-                                            {{ $mLarguar->transaksioni->vlera }} {{ $mLarguar->transaksioni->monedhaRelacion->kodi ?? '' }}
-                                        </span>
+                                        {{ number_format($mLarguar->vlera_totale_paguar, 2) }} {{ $mLarguar->transaksioni->monedhaRelacion->kodi ?? '' }}
+                                    </span>
                                 @endif
                             </div>
 
