@@ -437,6 +437,39 @@
                             </div>
                             @error('vlera_shtese') <div class="invalid-feedback d-block mt-1 fs-12">{{ $message }}</div> @enderror
                             <p class="text-secondary fs-11 mt-2 mb-0">{{ __('Kjo është VLERA TOTALE shtesë që do të regjistrohet si 1 pagesë. Mund ta ndryshoni.') }}</p>
+
+
+                            {{-- NEW: buton për detajet e periudhave --}}
+                            @if(count($detajetPeriudhaveFikse) > 0)
+                                <button type="button" class="btn btn-link btn-sm text-warning fw-semibold px-0 mt-2 fs-12"
+                                        wire:click="$toggle('shfaqDetajetShtese')">
+                                    <i class="ri-{{ $shfaqDetajetShtese ? 'arrow-up-s' : 'arrow-down-s' }}-line align-middle"></i>
+                                    {{ $shfaqDetajetShtese ? __('Fshih Detajet') : __('Shiko Detajet e Llogaritjes') }}
+                                </button>
+
+                                @if($shfaqDetajetShtese)
+                                    <div class="mt-2 bg-white rounded-2 border p-2">
+                                        <table class="table table-sm table-borderless fs-12 mb-0">
+                                            <thead>
+                                            <tr class="text-secondary border-bottom">
+                                                <th class="fw-medium py-1">{{ __('Periudha') }}</th>
+                                                <th class="fw-medium py-1">{{ __('Nga - Deri') }}</th>
+                                                <th class="fw-medium py-1 text-end">{{ __('Vlera') }}</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            @foreach($detajetPeriudhaveFikse as $segment)
+                                                <tr class="border-bottom border-light">
+                                                    <td class="py-1">{{ $segment['kategoria'] }}</td>
+                                                    <td class="py-1 text-secondary">{{ $segment['nga'] }} – {{ $segment['deri'] }}</td>
+                                                    <td class="py-1 text-end fw-semibold">{{ number_format($segment['vlera'], 2) }} {{ $kodiMonedhes }}</td>
+                                                </tr>
+                                            @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                @endif
+                            @endif
                         </div>
 
                         <table class="table table-sm table-borderless fs-13 mb-0">
