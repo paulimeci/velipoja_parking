@@ -378,6 +378,30 @@
                                     {{ \Carbon\Carbon::parse($mjetiSkaduarZgjedhur->nisja)->format('d/m/Y H:i') }}
                                 </td>
                             </tr>
+
+                            {{-- NEW: Lloji i pagesës (kategoria e prenotuar - Ditë/Natë/Orë etj) --}}
+                            <tr class="border-bottom border-light">
+                                <td class="text-secondary py-2 fw-medium">{{ __('Lloji i Pagesës') }}:</td>
+                                <td class="text-dark py-2 fw-semibold text-end">
+            <span class="badge bg-primary bg-opacity-10 text-primary px-2 py-1 rounded">
+                {{ $mjetiSkaduarZgjedhur->transaksioni->prenotimi->kategoria ?? __('I panjohur') }}
+            </span>
+                                </td>
+                            </tr>
+
+                            {{-- NEW: Sasia e paguar nga databaza (fusha "sasia" te transaksioni) --}}
+                            <tr class="border-bottom border-light">
+                                <td class="text-secondary py-2 fw-medium">{{ __('Sasia e Paguar') }}:</td>
+                                <td class="text-dark py-2 fw-semibold text-end">
+                                    {{ $mjetiSkaduarZgjedhur->transaksioni->sasia ?? '-' }}
+                                    @if(($detajetSkadimit['eshteNjesiDite'] ?? false))
+                                        {{ __('njësi') }}
+                                    @else
+                                        {{ __('orë') }}
+                                    @endif
+                                </td>
+                            </tr>
+
                             <tr class="border-bottom border-light">
                                 <td class="text-secondary py-2 fw-medium">{{ __('Ora e Lejuar (Paguar)') }}:</td>
                                 <td class="text-dark py-2 fw-semibold text-end">
