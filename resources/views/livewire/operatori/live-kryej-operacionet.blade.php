@@ -103,24 +103,14 @@
                             </span>
                             </div>
 
-                            {{-- Menuja e opsioneve (Dropdown) --}}
-                            <div class="dropdown action-opt">
-                                <button class="p-0 border-0 bg-transparent line-height-1" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="material-symbols-outlined text-body hover fs-18">more_horiz</i>
-                                </button>
-                                <ul class="dropdown-menu dropdown-menu-end bg-white border box-shadow py-1">
-                                    <li><a class="dropdown-item py-1 fs-12" href="javascript:void(0);">{{ __('Detajet') }}</a></li>
-                                    <li><a class="dropdown-item py-1 fs-12" href="javascript:void(0);">{{ __('Edito') }}</a></li>
-                                    <li><hr class="dropdown-divider my-1"></li>
-                                    <li>
-                                        <a class="dropdown-item text-danger py-1 fs-12" href="javascript:void(0);"
-                                           wire:click="largoMjetin({{ $mjeti->id }})"
-                                           wire:confirm="A je i sigurt që dëshiron ta largosh këtë mjet?">
-                                            {{ __('Largo') }}
-                                        </a>
-                                    </li>
-                                </ul>
-                            </div>
+                            {{-- Vetëm butoni Edito (Dropdown-i u hoq) --}}
+                            {{-- Vetëm butoni Edito që thërret funksionin përkatës --}}
+                            <button type="button"
+                                    class="btn p-0 border-0 bg-transparent line-height-1 text-secondary hover-primary d-flex align-items-center"
+                                    title="{{ __('Edito') }}"
+                                    wire:click="perditesoMjetinPrezent({{ $mjeti->id }})">
+                                <i class="material-symbols-outlined fs-16">edit</i>
+                            </button>
                         </div>
 
                         {{-- SEKSIONI QENDROR: TARGA --}}
@@ -377,7 +367,14 @@
                             </tr>
                             <tr class="border-bottom border-light">
                                 <td class="text-secondary py-2 fw-medium">{{ __('Ora e Lejuar (Paguar)') }}:</td>
-                                <td class="text-dark py-2 fw-semibold text-end">{{ round($oreLejuara, 2) }} {{ __('orë') }}</td>
+                                <td class="text-dark py-2 fw-semibold text-end">
+                                    @if(($detajetSkadimit['eshteNjesiDite'] ?? false) && ($detajetSkadimit['njesiTePaguara'] ?? null) !== null)
+                                        {{ $detajetSkadimit['njesiTePaguara'] }} × {{ $detajetSkadimit['emriKategorise'] ?? __('Njësi') }}
+                                        <span class="text-secondary fs-11">({{ round($oreLejuara, 2) }} {{ __('orë') }})</span>
+                                    @else
+                                        {{ round($oreLejuara, 2) }} {{ __('orë') }}
+                                    @endif
+                                </td>
                             </tr>
                             <tr class="border-bottom border-light">
                                 <td class="text-secondary py-2 fw-medium">{{ __('Koha Reale e Qëndrimit') }}:</td>
@@ -626,10 +623,36 @@
                                             {{ $mjetiLarguarZgjedhur->transaksioni->metoda_pageses ?? 'Kesh' }}
                                         </td>
                                     </tr>
+                                    {{-- NEW: lista e të gjitha pagesave (origjinale + shtesë) --}}
+                                    @if($mjetiLarguarZgjedhur->transaksionet && $mjetiLarguarZgjedhur->transaksionet->count() > 1)
+                                        <tr>
+                                            <td colspan="2" class="pt-3 pb-1">
+            <span class="text-secondary fw-bold fs-12">
+                <i class="ri-list-check-2 me-1"></i>{{ __('Historiku i Pagesave') }}
+            </span>
+                                            </td>
+                                        </tr>
+                                        @foreach($mjetiLarguarZgjedhur->transaksionet as $rreshti)
+                                            <tr class="border-bottom border-light">
+                                                <td class="text-secondary py-2 fw-medium">
+                                                    @if($rreshti->status_pagesa === 'paguar')
+                                                        <i class="ri-checkbox-circle-line text-primary me-1"></i>{{ __('Pagesa Fillestare') }}
+                                                    @else
+                                                        <i class="ri-add-circle-line text-warning me-1"></i>{{ __('Pagesë Shtesë') }}
+                                                    @endif
+                                                    <span class="text-muted fs-11">({{ $rreshti->created_at->format('d/m H:i') }})</span>
+                                                </td>
+                                                <td class="text-dark py-2 fw-semibold text-end">
+                                                    {{ number_format($rreshti->vlera, 2) }} {{ $rreshti->monedhaRelacion->kodi ?? '' }}
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    @endif
+
                                     <tr class="bg-success bg-opacity-10 rounded-2">
-                                        <td class="text-success py-2.5 fw-bold ps-2">{{ __('Vlera e Paguar') }}:</td>
+                                        <td class="text-success py-2.5 fw-bold ps-2">{{ __('Totali i Paguar') }}:</td>
                                         <td class="text-success py-2.5 fw-bolder text-end pe-2 fs-15">
-                                            {{ $mjetiLarguarZgjedhur->transaksioni->vlera }} {{ $mjetiLarguarZgjedhur->transaksioni->monedhaRelacion->kodi ?? 'ALL' }}
+                                            {{ number_format($mjetiLarguarZgjedhur->vlera_totale_paguar, 2) }} {{ $mjetiLarguarZgjedhur->transaksioni->monedhaRelacion->kodi ?? 'ALL' }}
                                         </td>
                                     </tr>
                                 @else
@@ -670,6 +693,119 @@
         </div>
     </div>
 @endif
+
+    @if($isEditModalOpen)
+        <div class="modal fade show d-block" id="modalEditMjeti" tabindex="-1" role="dialog" style="background: rgba(0,0,0,0.5); z-index: 1065;">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 bg-white shadow rounded-3">
+
+                    <div class="modal-header border-bottom p-4">
+                        <h5 class="modal-title fs-16 fw-semibold">
+                            <i class="ri-edit-2-line align-middle me-1 text-primary fs-20"></i>
+                            {{ __('Edito Mjetin Prezent') }}
+                        </h5>
+                        <button type="button" class="btn-close shadow-none" wire:click="mbyllModalEditimi"></button>
+                    </div>
+
+                    <div class="modal-body p-4">
+                        <div class="row g-3">
+
+                            <div class="col-12">
+                                <div class="form-group">
+                                    <label class="label text-secondary fw-medium mb-1 fs-12">{{ __('Data/Ora e Hyrjes') }}</label>
+                                    <input type="datetime-local" wire:model="edit_nisja"
+                                           class="form-control fs-13 py-2 rounded-3 @error('edit_nisja') is-invalid @enderror">
+                                    @error('edit_nisja') <div class="invalid-feedback d-block fs-12">{{ $message }}</div> @enderror
+                                </div>
+                            </div>
+
+                            <div class="col-6">
+                                <div class="form-group">
+                                    <label class="label text-secondary fw-medium mb-1 fs-12">{{ __('Lloji i Pagesës') }}</label>
+                                    <select wire:model.live="edit_id_kategoria" class="form-select fs-13 py-2 rounded-3">
+                                        @foreach($kategorite as $kategoria)
+                                            <option value="{{ $kategoria->id }}">{{ $kategoria->kategoria }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="col-6">
+                                <div class="form-group">
+                                    <label class="label text-secondary fw-medium mb-1 fs-12">{{ __('Monedha') }}</label>
+                                    <select wire:model.live="edit_id_monedha" class="form-select fs-13 py-2 rounded-3">
+                                        @foreach($monedhat as $monedha)
+                                            <option value="{{ $monedha->id }}">{{ $monedha->kodi }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+
+                            @if($kategoriaEditAktuale && $kategoriaEditAktuale->njesia_matjes === 'dite')
+                                <div class="col-12">
+                                    <div class="form-group">
+                                        <label class="label text-secondary fw-medium mb-1 fs-12">{{ __('Sa Ditë / Netë?') }}</label>
+                                        <input type="number" step="1" min="1" wire:model.live="edit_sasia" class="form-control fs-13 py-2 rounded-3">
+                                    </div>
+                                </div>
+                            @else
+                                <div class="col-12">
+                                    <div class="form-group">
+                                        <label class="label text-secondary fw-medium mb-1 fs-12">{{ __('Fasha Orare') }}</label>
+                                        <select wire:model.live="edit_id_fasha" class="form-select fs-13 py-2 rounded-3">
+                                            @forelse($fashatOrareEdit as $fasha)
+                                                <option value="{{ $fasha->id }}">
+                                                    @if($fasha->ora_nisje && $fasha->ora_mbarimi)
+                                                        {{ $fasha->ora_nisje }} - {{ $fasha->ora_mbarimi }}
+                                                    @else
+                                                        {{ $fasha->nga }} - {{ $fasha->ne }} {{ __('orë') }}
+                                                    @endif
+                                                </option>
+                                            @empty
+                                                <option value="">{{ __('Nuk ka fasha të përcaktuara') }}</option>
+                                            @endforelse
+                                        </select>
+                                    </div>
+                                </div>
+                            @endif
+
+                            <div class="col-12">
+                                <div class="form-group">
+                                    <label class="label text-secondary fw-medium mb-1 fs-12">{{ __('Vlera e Parapaguar') }}</label>
+                                    <div class="input-group">
+                                        <input type="number" step="0.01" min="0" wire:model="edit_vlera"
+                                               class="form-control fs-14 fw-semibold py-2 @error('edit_vlera') is-invalid @enderror" placeholder="0.00">
+                                        <span class="input-group-text bg-light text-secondary border-start-0 fw-bold fs-12">
+                {{ collect($monedhat)->firstWhere('id', $edit_id_monedha)->kodi ?? 'LEK' }}
+            </span>
+                                        {{-- NEW: rikalkulim vetëm kur klikohet, jo automatik --}}
+                                        <button type="button" class="btn btn-outline-secondary fs-12" wire:click="rikalkuloVlerenEditit" title="{{ __('Rikalko çmimin e plotë') }}">
+                                            <i class="ri-refresh-line"></i>
+                                        </button>
+                                    </div>
+                                    <p class="text-secondary fs-11 mt-1 mb-0">{{ __('Lëre 0 nëse mjeti s\'ka parapagesë ende. Vlerën e vendos vetë — sistemi s\'e ndryshon automatikisht.') }}</p>
+                                    @error('edit_vlera') <div class="invalid-feedback d-block fs-12">{{ $message }}</div> @enderror
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+
+                    <div class="modal-footer border-top p-3 d-flex justify-content-end gap-2 bg-light bg-opacity-50">
+                        <button type="button" class="btn btn-secondary py-2 px-3 fs-13 fw-semibold rounded-3 text-dark border-0 bg-gray bg-opacity-10" wire:click="mbyllModalEditimi">
+                            {{ __('Anulo') }}
+                        </button>
+                        <button type="button" class="btn btn-success py-2 px-3 fs-13 fw-semibold rounded-3 text-white" wire:click="ruajEditimin">
+                            <span wire:loading wire:target="ruajEditimin" class="spinner-border spinner-border-sm me-1"></span>
+                            <i class="ri-save-line me-1"></i> {{ __('Ruaj Ndryshimet') }}
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    @endif
 
 {{-- ═══════════════════════════════════════
       MODAL I RI: ZGJEDHJA E PRINTERIT (RawBT / Sistemi / GOOJPRT Bluetooth)
