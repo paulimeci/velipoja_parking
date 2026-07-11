@@ -13,68 +13,71 @@ class LiveAdminKonfiguroOret extends Component
 {
     use AuthorizesRequests;
 
+    // Vetitë (Properties) e modelit dhe formave
     public $ora_fillestare;
-
     public $ora_limit;
-
     public $id_kategoria_rezervimit;
+    public bool $is_orar_muri = false; // Kontrollon gjendjen e Switch-it në modal
 
-    // Array dinamik për të mbajtur çmimet sipas monedhave: [monedha_id => vlera]
     public array $cmimet_monedhave = [];
-
     public bool $showOretModal = false;
+    public bool $isViewOnly = false;
+    public $editingId = null;
+    public ?int $filterKatId = null;
+    public string $search = '';
 
     public function mount()
     {
         $this->authorize('admin.konfiguro-oret');
     }
 
-    public bool $isViewOnly = false;
-
-    public $editingId = null;
-
-    public ?int $filterKatId = null;
-
-    public string $search = '';
-
-    // Rregullat e validimit të përshtatshme për array-n e monedhave
+    /**
+     * Rregullat e Validimit Dinamik
+     * Nëse $is_orar_muri është True, detyron formatin e pastër HH:MM (00:00 deri 23:59)
+     * Nëse është False, lejon vetëm numra dhjetorë ose të plotë (p.sh. 12 ose 2.5)
+     */
+    /**
+     * Rregullat e Validimit Dinamik (Tani në formatin Array për siguri maksimale)
+     */
+    /**
+     * Rregullat e Validimit të Përditësuara për Inputin e Orës
+     */
     protected function rules()
     {
         return [
-            'id_kategoria_rezervimit' => 'required|exists:adm_kategoria_pageses,id',
-            'ora_fillestare' => 'required|numeric|min:0',
-            'ora_limit' => 'required|numeric|gt:ora_fillestare',
-            'cmimet_monedhave.*' => 'required|numeric|min:0',
+            'id_kategoria_rezervimit' => ['required', 'exists:adm_kategoria_pageses,id'],
+
+            // Regex i ri kërkon ekzaktësisht dy shifra për orën (00-23) dhe dy për minutat (00-59)
+            'ora_fillestare' => $this->is_orar_muri
+                ? ['required', 'regex:/^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/']
+                : ['required', 'numeric', 'min:0'],
+
+            'ora_limit' => $this->is_orar_muri
+                ? ['required', 'regex:/^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/']
+                : ['required', 'numeric', 'min:0'],
+
+            'cmimet_monedhave.*' => ['required', 'numeric', 'min:0'],
         ];
     }
 
-    protected $messages = [
-        'id_kategoria_rezervimit.required' => 'Duhet të zgjidhni kategorinë e rezervimit.',
-        'id_kategoria_rezervimit.exists' => 'Kategoria e zgjedhur nuk është valide.',
-        'ora_fillestare.required' => 'Fillimi i intervalit është i detyrueshëm.',
-        'ora_limit.required' => 'Fundi i intervalit është i detyrueshëm.',
-        'ora_limit.gt' => 'Fundi duhet të jetë më i madh se fillimi.',
-        'cmimet_monedhave.*.required' => 'Ky çmim është i detyrueshëm.',
-        'cmimet_monedhave.*.numeric' => 'Duhet të jetë numër valid.',
-        'cmimet_monedhave.*.min' => 'Çmimi nuk mund të jetë më i vogël se 0.',
-    ];
-
-    public function filtroKat($id = null)
+    /**
+     * Mesazhet e personalizuara të gabimit për validimin
+     */
+    protected function messages()
     {
-        $this->filterKatId = $id;
-    }
-
-    public function updatingSearch()
-    {
-        // e ruajme thjeshte per konsistence, live.debounce e rifreskon vetë render()
+        return [
+            'ora_fillestare.regex' => __('Formati duhet të jetë ekzaktësisht HH:MM (p.sh. 14:00 ose 09:00).'),
+            'ora_limit.regex' => __('Formati duhet të jetë ekzaktësisht HH:MM (p.sh. 22:00 ose 19:00).'),
+            'ora_fillestare.numeric' => __('Vendosni një numër të vlefshëm për orët.'),
+            'ora_limit.numeric' => __('Vendosni një numër të vlefshëm për orët.'),
+        ];
     }
 
     public function hapModalin()
     {
-        $this->reset(['ora_fillestare', 'ora_limit', 'cmimet_monedhave', 'editingId', 'isViewOnly', 'id_kategoria_rezervimit']);
+        $this->reset(['ora_fillestare', 'ora_limit', 'cmimet_monedhave', 'editingId', 'isViewOnly', 'id_kategoria_rezervimit', 'is_orar_muri']);
         $this->resetErrorBag();
 
-        // Nëse ka filtër aktiv kategorie, e parazgjedhim direkt në modal
         if ($this->filterKatId) {
             $this->id_kategoria_rezervimit = $this->filterKatId;
         }
@@ -82,113 +85,92 @@ class LiveAdminKonfiguroOret extends Component
         $this->showOretModal = true;
     }
 
-    // 1. FUNKSIONI VIEW
     public function shikoOret($id)
     {
-        $this->reset(['ora_fillestare', 'ora_limit', 'cmimet_monedhave', 'id_kategoria_rezervimit']);
-
+        $this->reset(['ora_fillestare', 'ora_limit', 'cmimet_monedhave', 'id_kategoria_rezervimit', 'is_orar_muri']);
         $fasha = DB::table('adm_oret_cmimi')->where('id', $id)->first();
-        if (! $fasha) {
-            return;
+        if (! $fasha) return;
+
+        // Kontrollojmë strukturen e të dhënave për të ndezur ose fikur Switch-in e modalit
+        if ($fasha->ora_nisje) {
+            $this->is_orar_muri = true;
+            $this->ora_fillestare = $fasha->ora_nisje;
+            $this->ora_limit = $fasha->ora_mbarimi;
+        } else {
+            $this->is_orar_muri = false;
+            $this->ora_fillestare = $fasha->nga;
+            $this->ora_limit = $fasha->ne;
         }
 
-        $this->ora_fillestare = $fasha->nga;
-        $this->ora_limit = $fasha->ne;
         $this->id_kategoria_rezervimit = $fasha->id_kategoria_rezervimit;
 
-        // Marrim çmimet e lidhura me këtë fashë
         $cmimet = DB::table('adm_cmimi_sipas_monedhes')->where('interval_id', $id)->get();
         foreach ($cmimet as $cmimi) {
             $this->cmimet_monedhave[$cmimi->monedha_id] = $cmimi->vlera;
         }
-
         $this->isViewOnly = true;
         $this->showOretModal = true;
     }
 
-    // 2. FUNKSIONI EDIT
     public function editOret($id)
     {
-        $this->reset(['ora_fillestare', 'ora_limit', 'cmimet_monedhave', 'isViewOnly', 'id_kategoria_rezervimit']);
+        $this->reset(['ora_fillestare', 'ora_limit', 'cmimet_monedhave', 'isViewOnly', 'id_kategoria_rezervimit', 'is_orar_muri']);
         $this->editingId = $id;
 
         $fasha = DB::table('adm_oret_cmimi')->where('id', $id)->first();
-        if (! $fasha) {
-            return;
+        if (! $fasha) return;
+
+        // Mbushim formën dhe përcaktojmë gjendjen e modalit automatikisht
+        if ($fasha->ora_nisje) {
+            $this->is_orar_muri = true;
+            $this->ora_fillestare = $fasha->ora_nisje;
+            $this->ora_limit = $fasha->ora_mbarimi;
+        } else {
+            $this->is_orar_muri = false;
+            $this->ora_fillestare = $fasha->nga;
+            $this->ora_limit = $fasha->ne;
         }
 
-        $this->ora_fillestare = $fasha->nga;
-        $this->ora_limit = $fasha->ne;
         $this->id_kategoria_rezervimit = $fasha->id_kategoria_rezervimit;
 
-        // Mbushim array-n me çmimet ekzistuese në DB
         $cmimet = DB::table('adm_cmimi_sipas_monedhes')->where('interval_id', $id)->get();
         foreach ($cmimet as $cmimi) {
             $this->cmimet_monedhave[$cmimi->monedha_id] = $cmimi->vlera;
         }
-
         $this->showOretModal = true;
     }
 
-    // RUAJTJA DHE PËRDITËSIMI
     public function ruajOret()
     {
         $this->validate();
 
-        $nga_e_re = floatval($this->ora_fillestare);
-        $ne_e_re = floatval($this->ora_limit);
         $katId = $this->id_kategoria_rezervimit;
 
-        // Kontrolli i mbivendosjes VETËM brenda së njëjtës kategori rezervimi,
-        // duke përjashtuar veten nëse editojmë
-        $fashatETjera = DB::table('adm_oret_cmimi')
-            ->where('id_kategoria_rezervimit', $katId)
-            ->when($this->editingId, function ($query) {
-                return $query->where('id', '!=', $this->editingId);
-            })
-            ->get();
+        // Përgatitja inteligjente e të dhënave para ruajtjes në bazuar te gjendja e switch-it
+        $nga = $this->is_orar_muri ? 0 : floatval($this->ora_fillestare);
+        $ne = $this->is_orar_muri ? 0 : floatval($this->ora_limit);
+        $ora_nisje = $this->is_orar_muri ? $this->ora_fillestare : null;
+        $ora_mbarimi = $this->is_orar_muri ? $this->ora_limit : null;
 
-        $kaMbivendosje = false;
-        foreach ($fashatETjera as $fasha) {
-            if ($nga_e_re < $fasha->ne && $ne_e_re > $fasha->nga) {
-                $kaMbivendosje = true;
-                break;
-            }
-        }
-
-        if ($kaMbivendosje) {
-            $this->addError('ora_fillestare', 'Ky interval kohor mbivendoset me një fashë ekzistuese për këtë kategori!');
-
-            return;
-        }
-
-        // Përdorim Transaction për të garantuar që çdo gjë ruhet saktë në të dyja tabelat
-        DB::transaction(function () use ($nga_e_re, $ne_e_re, $katId) {
+        DB::transaction(function () use ($nga, $ne, $ora_nisje, $ora_mbarimi, $katId) {
+            $data = [
+                'id_kategoria_rezervimit' => $katId,
+                'nga' => $nga,
+                'ne' => $ne,
+                'ora_nisje' => $ora_nisje,
+                'ora_mbarimi' => $ora_mbarimi,
+                'updated_at' => now(),
+            ];
 
             if ($this->editingId) {
-                // Përditësojmë fashën e kohës
-                DB::table('adm_oret_cmimi')->where('id', $this->editingId)->update([
-                    'id_kategoria_rezervimit' => $katId,
-                    'nga' => $nga_e_re,
-                    'ne' => $ne_e_re,
-                    'updated_at' => now(),
-                ]);
+                DB::table('adm_oret_cmimi')->where('id', $this->editingId)->update($data);
                 $intervalId = $this->editingId;
-
-                // Fshijmë çmimet e vjetra në mënyrë që t'i rishkruajmë pastër pa mbetur mbetje
                 DB::table('adm_cmimi_sipas_monedhes')->where('interval_id', $intervalId)->delete();
             } else {
-                // Krijojmë fashën e re dhe marrim ID-në e saj
-                $intervalId = DB::table('adm_oret_cmimi')->insertGetId([
-                    'id_kategoria_rezervimit' => $katId,
-                    'nga' => $nga_e_re,
-                    'ne' => $ne_e_re,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
+                $data['created_at'] = now();
+                $intervalId = DB::table('adm_oret_cmimi')->insertGetId($data);
             }
 
-            // Ruajmë vlerat për secilën monedhë në tabelën pivot
             foreach ($this->cmimet_monedhave as $monedhaId => $vlera) {
                 DB::table('adm_cmimi_sipas_monedhes')->insert([
                     'interval_id' => $intervalId,
@@ -201,46 +183,38 @@ class LiveAdminKonfiguroOret extends Component
         });
 
         $this->showOretModal = false;
-        $this->reset(['ora_fillestare', 'ora_limit', 'cmimet_monedhave', 'editingId', 'isViewOnly', 'id_kategoria_rezervimit']);
-        session()->flash('message', 'Konfigurimi i fashave dhe çmimeve u ruajt me sukses.');
+        $this->reset(['ora_fillestare', 'ora_limit', 'cmimet_monedhave', 'editingId', 'isViewOnly', 'id_kategoria_rezervimit', 'is_orar_muri']);
+        session()->flash('message', 'Konfigurimi u ruajt me sukses.');
     }
 
-    // 3. FUNKSIONI DELETE
     public function fshiOret($id)
     {
-        // Falë ->onDelete('cascade') në migrim, fshirja këtu do të fshijë automatikisht edhe çmimet përkatëse
         DB::table('adm_oret_cmimi')->where('id', $id)->delete();
-
         session()->flash('message', 'Intervali u fshi me sukses.');
     }
 
     public function render()
     {
-        // Marrim monedhat duke përdorur Modelin
         $monedhat = Monedhat::all();
 
-        // Marrim fashat bashkë me çmimet, monedhat dhe kategorinë e tyre
+        // Query që merr fashat kohore duke filtruar sipas kërkimit ose kategorisë së zgjedhur
         $fashat = OretCmimi::with(['cmimet.monedha', 'kategoria'])
             ->when($this->filterKatId, function ($query) {
                 $query->where('id_kategoria_rezervimit', $this->filterKatId);
             })
             ->when($this->search, function ($query) {
-                $query->where(function ($q) {
-                    $q->where('nga', 'like', '%'.$this->search.'%')
-                        ->orWhere('ne', 'like', '%'.$this->search.'%')
-                        ->orWhereHas('kategoria', function ($qk) {
-                            $qk->where('kategoria', 'like', '%'.$this->search.'%');
-                        });
+                $query->where(function($q) {
+                    $q->where('ora_nisje', 'like', '%' . $this->search . '%')
+                        ->orWhere('ora_mbarimi', 'like', '%' . $this->search . '%')
+                        ->orWhere('nga', 'like', '%' . $this->search . '%')
+                        ->orWhere('ne', 'like', '%' . $this->search . '%');
                 });
             })
-            ->orderBy('nga', 'asc')
+            ->orderBy('id', 'desc')
             ->get();
 
-        // E përshtasim duke përdorur një emër tjetër që mos të prishim relacionin `kategoria`
         $konfigurimet = $fashat->map(function ($fasha) {
-            // Krijojmë një atribute të ri "cmimet_mapped" që mos të prekim relacionin origjinal
             $fasha->cmimet_mapped = $fasha->cmimet->pluck('vlera', 'monedha.kodi')->toArray();
-
             return $fasha;
         });
 

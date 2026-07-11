@@ -36,15 +36,16 @@
                 $aktive = $filterKatId === $kategoria->id;
             @endphp
             <div class="col-xxl-2 col-xl-2 col-md-3 col-sm-4 col-6">
+                {{-- RIPARUAR: Klikimi tani ndryshon variablën direkt me $set për siguri të lartë në Livewire --}}
                 <div class="card border border-{{ $color }} border-opacity-25 rounded-3 mb-3 bg-{{ $color }} bg-opacity-10
                             {{ $aktive ? 'border-2 border-' . $color . ' border-opacity-100 shadow-sm' : '' }}"
-                     wire:click="filtroKat({{ $kategoria->id }})"
+                     wire:click="$set('filterKatId', {{ $kategoria->id }})"
                      style="cursor:pointer; transition: transform .15s, box-shadow .15s;
                             {{ $aktive ? 'transform:translateY(-3px)' : '' }}">
                     <div class="card-body p-2 px-3">
                         <div class="d-flex justify-content-end gap-1 mb-1">
                             @if($aktive)
-                                <button wire:click.stop="filtroKat(null)" class="border-0 bg-transparent p-0 lh-1" title="{{ __('Hiq filtrin') }}">
+                                <button wire:click.stop="$set('filterKatId', null)" class="border-0 bg-transparent p-0 lh-1" title="{{ __('Hiq filtrin') }}">
                                     <i class="material-symbols-outlined fs-14 text-danger">close</i>
                                 </button>
                             @else
@@ -85,9 +86,9 @@
                     @if($filterKatId)
                         @php $katAktive = $kategorite->firstWhere('id', $filterKatId); @endphp
                         @if($katAktive)
-                            <span class="badge bg-primary bg-opacity-15 text-secondary  rounded-pill px-3 py-2 fs-13">
+                            <span class="badge bg-primary bg-opacity-15 text-secondary rounded-pill px-3 py-2 fs-13">
                                 {{ __('Filtri') }}: {{ $katAktive->kategoria }}
-                                <button wire:click="filtroKat(null)"
+                                <button wire:click="$set('filterKatId', null)"
                                         class="border-0 bg-transparent p-0 ms-1 lh-1 text-primary align-middle"
                                         title="{{ __('Hiq filtrin') }}">
                                     <i class="material-symbols-outlined fs-14">close</i>
@@ -98,10 +99,10 @@
                 </div>
 
                 {{-- Formë kërkimi (Search) --}}
-                <form class="position-relative table-src-form me-0" onsubmit="event.preventDefault();">
-                    <input wire:model.live.debounce.300ms="search" type="text" class="form-control" placeholder="{{ __('Kërko fashë orësh...') }}">
-                    <i class="material-symbols-outlined position-absolute top-50 start-0 translate-middle-y">search</i>
-                </form>
+                <div class="position-relative table-src-form me-0">
+                    <input wire:model.live.debounce.300ms="search" type="text" class="form-control ps-5" placeholder="{{ __('Kërko fashë orësh...') }}">
+                    <i class="material-symbols-outlined position-absolute top-50 start-0 translate-middle-y ms-3">search</i>
+                </div>
             </div>
 
             {{-- TABELA E TË DHËNAVE --}}
@@ -112,8 +113,7 @@
                         <tr>
                             <th scope="col">{{ __('ID') }}</th>
                             <th scope="col">{{ __('Kategoria') }}</th>
-                            <th scope="col">{{ __('Nga (Orë)') }}</th>
-                            <th scope="col">{{ __('Deri Në (Orë)') }}</th>
+                            <th scope="col">{{ __('Intervali / Mënyra Kohore') }}</th>
                             <th scope="col">{{ __('Çmimi Kryesor (ALL)') }}</th>
                             <th scope="col">{{ __('Çmime të tjera') }}</th>
                             <th scope="col" class="text-end pe-4">{{ __('Veprime') }}</th>
@@ -124,17 +124,23 @@
                             <tr wire:key="konfig-{{ $konfig->id }}">
                                 <td class="text-secondary fs-13">#{{ $konfig->id }}</td>
                                 <td>
-                                    {{-- RIPARUAR: Tani shfaqet emri i kategorisë si tekst (24h, ore, fikse) --}}
                                     <span class="badge bg-secondary bg-opacity-10 text-secondary px-2 py-1 fs-11 fw-semibold rounded-2">
                                         {{ $konfig->kategoria->kategoria ?? '—' }}
                                     </span>
                                 </td>
-                                <td class="fw-medium text-secondary">{{ $konfig->nga }} {{ __('orë') }}</td>
-                                <td class="fw-medium text-secondary">
-                                    {{ $konfig->ne >= 999 ? '8+' : $konfig->ne . ' ' . __('orë') }}
+                                <td>
+                                    {{-- INTEGRUAR: Shfaqja inteligjente sipas strukturës së re të databazës --}}
+                                    @if($konfig->ora_nisje)
+                                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1.5 font-mono fs-12 rounded-2">
+                                            <i class="ri-time-line me-1"></i> Orar Muri: {{ $konfig->ora_nisje }} - {{ $konfig->ora_mbarimi }}
+                                        </span>
+                                    @else
+                                        <span class="badge bg-light text-dark border px-2 py-1.5 font-mono fs-12 rounded-2">
+                                            <i class="ri-hourglass-2-line me-1"></i> Sasi Kohe: {{ $konfig->nga }} - {{ $konfig->ne }} {{ __('orë') }}
+                                        </span>
+                                    @endif
                                 </td>
                                 <td>
-                                    {{-- RIPARUAR: Përdor atribute cmimet_mapped që rregulluam në backend --}}
                                     <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 fs-12 fw-bold rounded-2">
                                         {{ number_format($konfig->cmimet_mapped['ALL'] ?? 0, 0, ',', '.') }} ALL
                                     </span>
@@ -172,7 +178,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="text-center text-muted py-5 fs-14">
+                                <td colspan="6" class="text-center text-muted py-5 fs-14">
                                     <i class="material-symbols-outlined fs-48 d-block mb-2 text-secondary">hourglass_empty</i>
                                     {{ __('Nuk ka asnjë konfigurim të regjistruar për këtë kategori.') }}
                                 </td>
@@ -190,19 +196,20 @@
           MODAL — SHTO / EDITO / SHIKO
          ════════════════════════════════════════ --}}
     @if($showOretModal)
-        <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.45)">
-            <div class="modal-dialog modal-dialog-centered">
+        <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.45); backdrop-filter: blur(2px);">
+            <div class="modal-dialog modal-dialog-centered modal-sm">
                 <div class="modal-content border-0 rounded-3 shadow">
                     <div class="modal-header border-0 pb-0">
-                        <h5 class="modal-title fw-semibold">
+                        <h5 class="modal-title fw-semibold fs-16">
                             @if($isViewOnly) {{ __('Shiko Konfigurimin') }} @elseif($editingId) {{ __('Edito Konfigurimin') }} @else {{ __('Shto Konfigurim të Ri') }} @endif
                         </h5>
                         <button type="button" wire:click="$set('showOretModal', false)" class="btn-close"></button>
                     </div>
                     <div class="modal-body pt-3">
 
+                        {{-- Kategoria --}}
                         <div class="mb-3">
-                            <label class="form-label fw-medium">{{ __('Kategoria e Rezervimit') }} <span class="text-danger">*</span></label>
+                            <label class="form-label fw-medium text-secondary small text-uppercase">{{ __('Kategoria e Rezervimit') }} <span class="text-danger">*</span></label>
                             <select wire:model="id_kategoria_rezervimit"
                                     {{ $isViewOnly ? 'disabled' : '' }}
                                     class="form-select rounded-2 @error('id_kategoria_rezervimit') is-invalid @enderror">
@@ -214,51 +221,86 @@
                             @error('id_kategoria_rezervimit') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label fw-medium">{{ __('Nga (Kohëzgjatja në Orë)') }} <span class="text-danger">*</span></label>
-                            <input wire:model="ora_fillestare" type="number" step="0.01" min="0"
-                                   {{ $isViewOnly ? 'disabled' : '' }}
-                                   class="form-control rounded-2 @error('ora_fillestare') is-invalid @enderror"
-                                   placeholder="{{ __('p.sh. 0') }}">
-                            @error('ora_fillestare') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label fw-medium">{{ __('Deri Në (Kohëzgjatja në Orë)') }} <span class="text-danger">*</span></label>
-                            <input wire:model="ora_limit" type="number" step="0.01" min="0"
-                                   {{ $isViewOnly ? 'disabled' : '' }}
-                                   class="form-control rounded-2 @error('ora_limit') is-invalid @enderror"
-                                   placeholder="{{ __('p.sh. 2') }}">
-                            @error('ora_limit') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                        </div>
-
-                        <hr class="text-muted my-3">
-                        <h6 class="fw-semibold mb-3 text-secondary">{{ __('Çmimet sipas Monedhave') }}</h6>
-
-                        @foreach($monedhat as $monedha)
-                            <div class="mb-3">
-                                <label class="form-label fw-medium">{{ __('Vlera në') }} {{ $monedha->emri }} ({{ $monedha->kodi }}) <span class="text-danger">*</span></label>
-                                <div class="input-group">
-                                    <input wire:model="cmimet_monedhave.{{ $monedha->id }}" type="number" step="0.01" min="0"
-                                           {{ $isViewOnly ? 'disabled' : '' }}
-                                           class="form-control @error('cmimet_monedhave.' . $monedha->id) is-invalid @enderror"
-                                           placeholder="{{ __('Vendos vlerën për') }} {{ $monedha->kodi }}">
-                                    <span class="input-group-text bg-light fw-semibold rounded-end-2">{{ $monedha->kodi }}</span>
-                                </div>
-                                @error('cmimet_monedhave.' . $monedha->id)
-                                <div class="text-danger fs-13 mt-1">{{ $message }}</div>
-                                @enderror
+                        {{-- SWITCH SELECTOR: Lejon zgjedhjen e llojit të inputit --}}
+                        <div class="mb-3 p-2 bg-light rounded-2 border border-dashed">
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" role="switch" id="llojiKonfigurimit"
+                                       wire:model.live="is_orar_muri" {{ $isViewOnly ? 'disabled' : '' }}>
+                                <label class="form-check-label fw-semibold text-dark fs-13" for="llojiKonfigurimit">
+                                    {{ __('Përdor Orar Muri (Fiks)') }}
+                                </label>
                             </div>
-                        @endforeach
+                            <span class="text-secondary fs-11 d-block mt-1">
+                                {{ $is_orar_muri ? __('Do të ruhet si fashë orari psh 14:00 - 22:00') : __('Do të ruhet si sasi orësh qëndrimi psh 0 - 12 orë') }}
+                            </span>
+                        </div>
+
+                        {{-- INPUTET DINAMIKE (Ndryshojnë në bazë të vlerës së Switch-it lart) --}}
+                        <div class="row g-2 mb-3">
+                            @if($is_orar_muri)
+                                {{-- NDRYSHIMI: Inputet tani janë të tipit "time" për përzgjedhje automatike --}}
+                                <div class="col-6">
+                                    <label class="form-label fw-medium text-secondary small text-uppercase">{{ __('Ora e Nisjes') }} <span class="text-danger">*</span></label>
+                                    <input wire:model="ora_fillestare" type="time" {{ $isViewOnly ? 'disabled' : '' }}
+                                    class="form-control font-mono rounded-2 @error('ora_fillestare') is-invalid @enderror">
+                                    @error('ora_fillestare') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label fw-medium text-secondary small text-uppercase">{{ __('Ora e Mbarimit') }} <span class="text-danger">*</span></label>
+                                    <input wire:model="ora_limit" type="time" {{ $isViewOnly ? 'disabled' : '' }}
+                                    class="form-control font-mono rounded-2 @error('ora_limit') is-invalid @enderror">
+                                    @error('ora_limit') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                </div>
+                            @else
+                                {{-- Inputet për formatin Sasi Kohëzgjatje (numër i thjeshtë) mbeten njësoj --}}
+                                <div class="col-6">
+                                    <label class="form-label fw-medium text-secondary small text-uppercase">{{ __('Nga (Orë)') }} <span class="text-danger">*</span></label>
+                                    <input wire:model="ora_fillestare" type="number" step="0.5" min="0"
+                                           {{ $isViewOnly ? 'disabled' : '' }}
+                                           class="form-control font-mono rounded-2 @error('ora_fillestare') is-invalid @enderror"
+                                           placeholder="p.sh. 0">
+                                    @error('ora_fillestare') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label fw-medium text-secondary small text-uppercase">{{ __('Deri Në (Orë)') }} <span class="text-danger">*</span></label>
+                                    <input wire:model="ora_limit" type="number" step="0.5" min="0"
+                                           {{ $isViewOnly ? 'disabled' : '' }}
+                                           class="form-control font-mono rounded-2 @error('ora_limit') is-invalid @enderror"
+                                           placeholder="p.sh. 12">
+                                    @error('ora_limit') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                </div>
+                            @endif
+                        </div>
+
+                        {{-- Seksioni i Çmimeve sipas Monedhave --}}
+                        <div class="bg-light p-3 rounded-3 border">
+                            <h6 class="fw-bold mb-3 text-secondary small text-uppercase tracking-wider">{{ __('Çmimet sipas Monedhave') }}</h6>
+
+                            @foreach($monedhat as $monedha)
+                                <div class="mb-2">
+                                    <label class="form-label fw-medium fs-13 text-muted mb-1">{{ $monedha->emri }} ({{ $monedha->kodi }}) <span class="text-danger">*</span></label>
+                                    <div class="input-group input-group-sm">
+                                        <input wire:model="cmimet_monedhave.{{ $monedha->id }}" type="number" step="0.01" min="0"
+                                               {{ $isViewOnly ? 'disabled' : '' }}
+                                               class="form-control text-end pe-2 font-mono @error('cmimet_monedhave.' . $monedha->id) is-invalid @enderror"
+                                               placeholder="0.00">
+                                        <span class="input-group-text bg-white fw-bold text-secondary small" style="min-width: 50px; justify-content: center;">{{ $monedha->kodi }}</span>
+                                    </div>
+                                    @error('cmimet_monedhave.' . $monedha->id)
+                                    <div class="text-danger fs-12 mt-1">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            @endforeach
+                        </div>
 
                     </div>
                     <div class="modal-footer border-0 pt-2">
                         <button type="button" wire:click="$set('showOretModal', false)"
-                                class="btn btn-outline-secondary rounded-2">{{ __('Anulo') }}</button>
+                                class="btn btn-outline-secondary btn-sm rounded-2 px-3">{{ __('Anulo') }}</button>
                         @if(!$isViewOnly)
-                            <button type="button" wire:click="ruajOret" class="btn btn-primary rounded-2">
+                            <button type="button" wire:click="ruajOret" class="btn btn-primary btn-sm rounded-2 px-3">
                                 <span wire:loading wire:target="ruajOret" class="spinner-border spinner-border-sm me-1"></span>
-                                {{ $editingId ? __('Ruaj Ndryshimet') : __('Ruaj Konfigurimin') }}
+                                {{ $editingId ? __('Ruaj Ndryshimet') : __('Ruaj') }}
                             </button>
                         @endif
                     </div>

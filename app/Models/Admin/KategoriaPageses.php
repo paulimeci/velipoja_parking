@@ -20,4 +20,15 @@ class KategoriaPageses extends Model
     }
 
 
+    public function gjysmaDite()
+    {
+        return $this->belongsTo(KategoriaPageses::class, 'id_kategoria_gjysme_dite');
+    }
+
+    public function gjysmaNate()
+    {
+        return $this->belongsTo(KategoriaPageses::class, 'id_kategoria_gjysme_nate');
+    }
+
+
 }

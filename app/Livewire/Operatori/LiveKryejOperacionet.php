@@ -44,6 +44,23 @@ class LiveKryejOperacionet extends Component
 
     public $mjetiLarguarZgjedhur = null;
     public $shfaqModalDetajet = false;
+
+    public $shfaqModalSkadimi = false;
+    public $mjetiSkaduarZgjedhur = null;
+    public $detajetSkadimit = [];
+    public $vlera_shtese = 0;
+
+    public $shtese_id_fasha = null;
+    public $shtese_sasia = null;
+
+    public $vlera_dite_plota = 0;              // NEW: e paeditueshme — ditët/netët e plota shtesë
+    public $shtese_sasia_plote = 0;
+    public $shtese_id_kategoria_plote = null;
+    public $shtese_id_fasha_plote = null;
+
+    public $shtese_id_kategoria_gjysme = null; // NEW: gjysma (ditë ose natë)
+    public $shtese_id_fasha_gjysme = null;
+
     public function mount()
     {
         $kategoriaDefault = KategoriaPageses::where('is_default', 1)->first();
@@ -103,12 +120,25 @@ class LiveKryejOperacionet extends Component
 
     public function shfaqModalPagesen($id)
     {
-        $operacioni = Operacionet::find($id);
+        $operacioni = Operacionet::with(['transaksioni.prenotimi', 'transaksioni.fashaOrare', 'transaksioni.monedha'])->find($id);
 
-        if ($operacioni) {
-            $this->eshteRegjistrimParaprak = false; // kjo është mbyllja reale
-            $this->inicializoModalinPerOperacionin($operacioni);
+        if (!$operacioni) {
+            return;
         }
+
+        $statusi = $this->statusiSkadimit($operacioni);
+
+        // NEW: nëse koha e paguar ka skaduar, hap modalin e skadimit në vend të atij normal
+        if ($statusi['skaduar']) {
+            $this->mjetiSkaduarZgjedhur = $operacioni;
+            $this->detajetSkadimit = $statusi;
+            $this->llogaritVlerenShtese($operacioni, $statusi);
+            $this->shfaqModalSkadimi = true;
+            return;
+        }
+
+        $this->eshteRegjistrimParaprak = false;
+        $this->inicializoModalinPerOperacionin($operacioni);
     }
 
     private function inicializoModalinPerOperacionin(Operacionet $operacioni)
@@ -334,6 +364,428 @@ class LiveKryejOperacionet extends Component
 
         return (int) ceil($oreReale / $oreNjesie);
     }
+
+
+    // NEW: kontrollon nëse koha e paguar (fasha orare ose sasia*orëNjësie) është kaluar
+    public function statusiSkadimit(Operacionet $mjeti): array
+    {
+        $transaksioni = $mjeti->transaksioni;
+        if (!$transaksioni) {
+            return ['skaduar' => false, 'paguar' => false, 'oreLejuara' => null, 'oreReale' => null];
+        }
+
+        $hyrja = Carbon::parse($mjeti->nisja);
+        $tani  = Carbon::now();
+        $oreReale = max($hyrja->diffInMinutes($tani) / 60, 0);
+
+        $kategoria = $transaksioni->prenotimi;
+        $fasha     = $transaksioni->fashaOrare;
+        $oreLejuara = null;
+
+        // Orari fiks ka PËRPARËSI mbi njësinë ditore
+        if ($fasha && $fasha->ora_nisje && $fasha->ora_mbarimi) {
+            $skadimiDatetime = $this->llogaritSkadimineOresFikse($hyrja, $fasha, $transaksioni->sasia ?? 1);
+            $oreLejuara = round($hyrja->diffInMinutes($skadimiDatetime) / 60, 2);
+        } elseif ($kategoria && $kategoria->eshteNjesiaDite()) {
+            $oreNjesie = $kategoria->oreNjesiReale();
+            $njesiPlotaTePaguara = $this->njesiPlotaTePaguara($mjeti, $kategoria->id);
+            $oreLejuara = $oreNjesie * $njesiPlotaTePaguara;
+        } elseif ($fasha) {
+            $oreLejuara = $fasha->ne;
+        }
+
+        $skaduar = $oreLejuara !== null && $oreReale > $oreLejuara;
+
+        return [
+            'skaduar'    => $skaduar,
+            'paguar'     => $transaksioni->status_pagesa === 'paguar',
+            'oreLejuara' => $oreLejuara,
+            'oreReale'   => round($oreReale, 2),
+        ];
+    }
+
+// NEW: numëron VETËM njësitë e plota të paguara për kategorinë kryesore (jo gjysmat)
+    private function njesiPlotaTePaguara(Operacionet $mjeti, int $idKategoriaPlote): int
+    {
+        return (int) TransaksioniOperacionit::where('id_operacionit', $mjeti->id)
+            ->where('id_prenotimit', $idKategoriaPlote)
+            ->whereIn('status_pagesa', ['paguar', 'pagese_shtese'])
+            ->sum('sasia');
+    }
+
+// NEW: kontrollon nëse gjysma (ditë ose natë) është regjistruar tashmë si e paguar
+    private function gjysmaEshteTashmePaguar(Operacionet $mjeti, $kategoriaPlote): bool
+    {
+        $familja = $this->gjejFamiljeGjysmesh($kategoriaPlote);
+
+        if (!$familja) {
+            return false;
+        }
+
+        $idetGjysme = collect([$familja['dite']?->id, $familja['nate']?->id])
+            ->filter()->values();
+
+        if ($idetGjysme->isEmpty()) {
+            return false;
+        }
+
+        // NEW: kontrollojmë VETËM pagesat shtesë (pagese_shtese), jo pagesën origjinale bazë,
+        // sepse ajo tashmë llogaritet si njësi e plotë te njesiPlotaTePaguara()
+        return TransaksioniOperacionit::where('id_operacionit', $mjeti->id)
+            ->whereIn('id_prenotimit', $idetGjysme)
+            ->where('status_pagesa', 'pagese_shtese')
+            ->exists();
+    }
+
+
+
+// NEW: mbledh sasinë totale të paguar deri tani (rreshti origjinal + çdo shtesë e mëparshme)
+// Kjo siguron që nëse mjeti ka pasur tashmë 1 pagesë shtesë më parë, njësitë e reja nuk llogariten dyfish
+    private function sasiaTotalePaguar(Operacionet $mjeti): int
+    {
+        return (int) TransaksioniOperacionit::where('id_operacionit', $mjeti->id)
+            ->whereIn('status_pagesa', ['paguar', 'pagese_shtese'])
+            ->sum('sasia');
+    }
+
+// NEW: gjen momentin exact (Carbon datetime) kur skadon fasha me orar fiks
+// Trajton kalimin e mesnatës (p.sh. Natë 19:00-09:00) dhe sasi > 1 (disa ditë/net)
+    private function llogaritSkadimineOresFikse(Carbon $hyrja, $fasha, int $sasia): Carbon
+    {
+        $skadimi = Carbon::parse($hyrja->format('Y-m-d') . ' ' . $fasha->ora_mbarimi);
+
+        // Nëse ora_mbarimi për atë ditë kalendarike ka kaluar tashmë (ose është e barabartë) me hyrjen,
+        // skadimi real bie ditën pasardhëse (kjo mbulon vetvetiu edhe fashat që kalojnë mesnatën)
+        if ($skadimi->lessThanOrEqualTo($hyrja)) {
+            $skadimi->addDay();
+        }
+
+        // Për sasi > 1 (disa ditë/net të blera), zgjerojmë me nga një cikël 24-orësh për çdo njësi shtesë
+        if ($sasia > 1) {
+            $skadimi->addDays($sasia - 1);
+        }
+
+        return $skadimi;
+    }
+    // NEW: llogarit sa duhet paguar shtesë krahasuar me vlerën ekzistuese të paguar
+    // NEW: llogarit sa duhet paguar shtesë krahasuar me vlerën ekzistuese të paguar
+    private function llogaritVlerenShtese(Operacionet $operacioni, array $statusi): void
+    {
+        $transaksioni = $operacioni->transaksioni;
+        if (!$transaksioni) {
+            $this->vlera_shtese = 0;
+            $this->vlera_dite_plota = 0;
+            return;
+        }
+
+        $kategoria = $transaksioni->prenotimi;
+        $fasha     = $transaksioni->fashaOrare;
+        $monedhaId = $transaksioni->monedha;
+
+        // Orari fiks (Ditë 09-19 / Natë 19-09) ka përparësi — skenar i ndarë (kalim fashe sipas orës së murit)
+        if ($fasha && $fasha->ora_nisje && $fasha->ora_mbarimi) {
+            $fashaERreNeVazhdim = $this->gjejFashenFikseAktive($fasha->id);
+            if ($fashaERreNeVazhdim) {
+                $cmimiMonedhes = $fashaERreNeVazhdim->cmimet()->where('monedha_id', $monedhaId)->first();
+                $this->vlera_shtese    = $cmimiMonedhes ? round($cmimiMonedhes->vlera, 2) : 0;
+                $this->shtese_id_fasha = $fashaERreNeVazhdim->id;
+                $this->shtese_sasia    = 1;
+                $this->vlera_dite_plota = 0;
+                $this->shtese_sasia_plote = 0;
+                $this->shtese_id_kategoria_plote = null;
+                $this->shtese_id_kategoria_gjysme = null;
+                $this->shtese_id_fasha_gjysme = null;
+                return;
+            }
+        }
+
+        // ═══ SKENARI YT — me rregullin e rrumbullakosjes së shtuar ═══
+        if ($kategoria && $kategoria->eshteNjesiaDite()) {
+            $oreNjesie = $kategoria->oreNjesiReale();
+            $njesiPlotaNevojshme = (int) floor($statusi['oreReale'] / $oreNjesie);
+            $mbetetOre = $statusi['oreReale'] - ($njesiPlotaNevojshme * $oreNjesie);
+
+            $njesiPlotaTePaguara = $this->njesiPlotaTePaguara($operacioni, $kategoria->id);
+            $njesiPlotaPerTuPaguar = max($njesiPlotaNevojshme - $njesiPlotaTePaguara, 0);
+
+            $njesiaCmimi = \App\Models\Admin\OretCmimi::where('id_kategoria_rezervimit', $kategoria->id)->first();
+            $cmimiNjesi  = $njesiaCmimi
+                ? ($njesiaCmimi->cmimet()->where('monedha_id', $monedhaId)->first()->vlera ?? 0)
+                : 0;
+
+            // NEW: nëse mbetja kalon gjysmën e njësisë (>12h), e trajtojmë si NJË NJËSI TJETËR E PLOTË
+            // në vend të shumës së 2 gjysmave
+            $gjysmaOre = $oreNjesie / 2;
+            if ($mbetetOre > $gjysmaOre) {
+                $njesiPlotaPerTuPaguar += 1;
+                $mbetetOre = 0; // s'ka mbetje pas kësaj — u përfshi si njësi e plotë
+            }
+
+            // NEW: vlera e ditëve/netëve të plota — mbetet e brendshme, jo e shfaqur veças
+            $this->vlera_dite_plota          = round($cmimiNjesi * $njesiPlotaPerTuPaguar, 2);
+            $this->shtese_sasia_plote        = $njesiPlotaPerTuPaguar;
+            $this->shtese_id_kategoria_plote = $kategoria->id;
+            $this->shtese_id_fasha_plote     = $njesiaCmimi?->id;
+
+            $vleraGjysme = 0;
+            $duhetGjysme = $mbetetOre > 0.01 && !$this->gjysmaEshteTashmePaguar($operacioni, $kategoria);
+
+            if ($duhetGjysme) {
+                $gjysma = $this->gjenGjysmenAktive($kategoria);
+                if ($gjysma) {
+                    $cmimiGjysmes = $gjysma['fasha']->cmimet()->where('monedha_id', $monedhaId)->first();
+                    $vleraGjysme = $cmimiGjysmes ? round($cmimiGjysmes->vlera, 2) : 0;
+                    $this->shtese_id_kategoria_gjysme = $gjysma['kategoria']->id;
+                    $this->shtese_id_fasha_gjysme     = $gjysma['fasha']->id;
+                } else {
+                    $this->shtese_id_kategoria_gjysme = null;
+                    $this->shtese_id_fasha_gjysme = null;
+                }
+            } else {
+                $this->shtese_id_kategoria_gjysme = null;
+                $this->shtese_id_fasha_gjysme = null;
+            }
+
+            // NEW: BASHKUAR NË NJË SHIFËR TË VETME — kjo është ajo që shfaqet dhe editohet në modal
+            $this->vlera_shtese = round($this->vlera_dite_plota + $vleraGjysme, 2);
+            return;
+        }
+
+        // ═══ ORË (bracket i thjeshtë) ═══
+        if ($kategoria) {
+            $fashaEPershtatshme = \App\Models\Admin\OretCmimi::where('id_kategoria_rezervimit', $kategoria->id)
+                ->orderBy('nga')->get()
+                ->first(fn($f) => $statusi['oreReale'] >= $f->nga && $statusi['oreReale'] <= $f->ne)
+                ?? \App\Models\Admin\OretCmimi::where('id_kategoria_rezervimit', $kategoria->id)
+                    ->orderBy('ne', 'desc')->first();
+
+            $cmimiIRi = $fashaEPershtatshme
+                ? ($fashaEPershtatshme->cmimet()->where('monedha_id', $monedhaId)->first()->vlera ?? 0)
+                : 0;
+
+            $this->shtese_id_fasha = $fashaEPershtatshme?->id;
+            $this->shtese_sasia = 1;
+            $this->vlera_shtese = max(round($cmimiIRi - $transaksioni->vlera, 2), 0);
+            $this->vlera_dite_plota = 0;
+            $this->shtese_sasia_plote = 0;
+            $this->shtese_id_kategoria_plote = null;
+            $this->shtese_id_kategoria_gjysme = null;
+            $this->shtese_id_fasha_gjysme = null;
+        }
+    }
+    private function gjenGjysmenNeMomentin($kategoriaPlote, Carbon $momenti): ?array
+    {
+        $familja = $this->gjejFamiljeGjysmesh($kategoriaPlote);
+        if (!$familja) {
+            return null;
+        }
+
+        $ora = $momenti->format('H:i');
+        $kandidatet = collect([$familja['dite'], $familja['nate']])->filter();
+
+        foreach ($kandidatet as $gjysme) {
+            $fasha = \App\Models\Admin\OretCmimi::where('id_kategoria_rezervimit', $gjysme->id)
+                ->whereNotNull('ora_nisje')->whereNotNull('ora_mbarimi')
+                ->first();
+
+            if (!$fasha) continue;
+
+            $brenda = $fasha->ora_nisje <= $fasha->ora_mbarimi
+                ? ($ora >= $fasha->ora_nisje && $ora < $fasha->ora_mbarimi)
+                : ($ora >= $fasha->ora_nisje || $ora < $fasha->ora_mbarimi);
+
+            if ($brenda) {
+                return ['kategoria' => $gjysme, 'fasha' => $fasha];
+            }
+        }
+
+        return null;
+    }
+    private function mblidhVlerenPerPeriudhatFikse(Carbon $nga, Carbon $deri, int $monedhaId): array
+    {
+        $vleraTotale = 0;
+        $cursor = $nga->copy();
+        $fashaFundit = null;
+        $siguria = 0; // mbrojtje kundër loop të pafundme
+
+        while ($cursor->lessThan($deri) && $siguria < 60) {
+            $fasha = $this->gjejFashenFikseNeMomentin($cursor);
+            if (!$fasha) {
+                break;
+            }
+
+            $fashaFundit = $fasha;
+
+            // fundi i këtij blloku specifik (p.sh. sot në orën ora_mbarimi)
+            $fundiBllokut = Carbon::parse($cursor->format('Y-m-d') . ' ' . $fasha->ora_mbarimi);
+            if ($fundiBllokut->lessThanOrEqualTo($cursor)) {
+                $fundiBllokut->addDay();
+            }
+
+            $cmimiMonedhes = $fasha->cmimet()->where('monedha_id', $monedhaId)->first();
+            $vleraTotale += $cmimiMonedhes ? $cmimiMonedhes->vlera : 0;
+
+            $cursor = $fundiBllokut->greaterThan($deri) ? $deri->copy() : $fundiBllokut;
+            $siguria++;
+        }
+
+        return ['vlera' => round($vleraTotale, 2), 'fasha' => $fashaFundit];
+    }
+
+// NEW: gjen fashën fikse aktive për një moment specifik (jo domosdoshmërisht "tani")
+    private function gjejFashenFikseNeMomentin(Carbon $momenti): ?\App\Models\Admin\OretCmimi
+    {
+        $ora = $momenti->format('H:i');
+
+        return \App\Models\Admin\OretCmimi::whereNotNull('ora_nisje')
+            ->whereNotNull('ora_mbarimi')
+            ->get()
+            ->first(function ($f) use ($ora) {
+                if ($f->ora_nisje <= $f->ora_mbarimi) {
+                    return $ora >= $f->ora_nisje && $ora < $f->ora_mbarimi;
+                }
+                // fasha kalon mesnatën (p.sh. 19:00 - 09:00)
+                return $ora >= $f->ora_nisje || $ora < $f->ora_mbarimi;
+            });
+    }
+
+// NEW: gjen fashën tjetër me orar fiks (p.sh. "Natë" kur ka skaduar "Ditë") që mbulon orën aktuale,
+// duke përjashtuar fashën aktuale të skaduar
+    private function gjejFashenFikseAktive(int $idFashesAktuale): ?\App\Models\Admin\OretCmimi
+    {
+        $tani = Carbon::now()->format('H:i');
+
+        return \App\Models\Admin\OretCmimi::whereNotNull('ora_nisje')
+            ->whereNotNull('ora_mbarimi')
+            ->where('id', '!=', $idFashesAktuale)
+            ->get()
+            ->first(function ($f) use ($tani) {
+                if ($f->ora_nisje <= $f->ora_mbarimi) {
+                    return $tani >= $f->ora_nisje && $tani < $f->ora_mbarimi;
+                }
+                // Fasha kalon mesnatën (p.sh. 19:00 - 09:00)
+                return $tani >= $f->ora_nisje || $tani < $f->ora_mbarimi;
+            });
+    }
+    public function ruajPagesenShtese()
+    {
+        $this->validate([
+            'vlera_shtese' => 'required|numeric|min:0',
+        ]);
+        if (!$this->mjetiSkaduarZgjedhur || !$this->mjetiSkaduarZgjedhur->transaksioni) {
+            return;
+        }
+        if ($this->vlera_shtese <= 0) {
+            $this->addError('vlera_shtese', 'Nuk ka asnjë vlerë për t\'u paguar.');
+            return;
+        }
+        $operacioni = $this->mjetiSkaduarZgjedhur;
+        $transaksioniOriginal = $operacioni->transaksioni;
+        $rreshtiIFundit = null;
+
+        if ($this->shtese_sasia_plote > 0 && $this->vlera_dite_plota > 0) {
+            $rreshtiIFundit = TransaksioniOperacionit::create([
+                'id_operacionit'  => $operacioni->id,
+                'id_prenotimit'   => $this->shtese_id_kategoria_plote ?? $transaksioniOriginal->id_prenotimit,
+                'id_fashes_orare' => $this->shtese_id_fasha_plote,
+                'sasia'           => $this->shtese_sasia_plote,
+                'status_pagesa'   => 'pagese_shtese',
+                'monedha'         => $transaksioniOriginal->monedha,
+                'vlera'           => $this->vlera_dite_plota,
+            ]);
+        }
+
+        $vleraGjysmeFinale = round($this->vlera_shtese - $this->vlera_dite_plota, 2);
+        if ($vleraGjysmeFinale > 0) {
+            $rreshtiIFundit = TransaksioniOperacionit::create([
+                'id_operacionit'  => $operacioni->id,
+                'id_prenotimit'   => $this->shtese_id_kategoria_gjysme ?? ($this->shtese_id_kategoria_plote ?? $transaksioniOriginal->id_prenotimit),
+                'id_fashes_orare' => $this->shtese_id_fasha_gjysme ?? $this->shtese_id_fasha,
+                'sasia'           => 1,
+                'status_pagesa'   => 'pagese_shtese',
+                'monedha'         => $transaksioniOriginal->monedha,
+                'vlera'           => $vleraGjysmeFinale,
+            ]);
+        }
+
+        if (!$rreshtiIFundit) {
+            return;
+        }
+
+        $operatoriOrigjinal = $operacioni->id_operatori;
+        $operatoriAktual    = Auth::id();
+
+        if ($operatoriOrigjinal && $operatoriOrigjinal != $operatoriAktual) {
+            \App\Models\Admin\NdryshimiOperatorit::create([
+                'id_transaksionit' => $rreshtiIFundit->id,
+                'operatori_pare'   => $operatoriOrigjinal,
+                'operatori_dyte'   => $operatoriAktual,
+                'pagesa_e_re'      => $this->vlera_shtese,
+            ]);
+            $operacioni->id_operatori = $operatoriAktual;
+        }
+
+        $operacioni->ikja = now();
+        $operacioni->status = 'larguar';
+        $operacioni->save();
+
+        $rawContent = app(KuponParkimiService::class)->buildPagesenShteseRaw($operacioni, $rreshtiIFundit, $this->vlera_shtese);
+        $this->dispatch('printo-ne-bluetooth', rawContent: $rawContent);
+
+        session()->flash('success', 'Operacioni u mbyll me sukses! Pagesë shtesë: +' . number_format($this->vlera_shtese, 2) . ' ' . ($transaksioniOriginal->monedhaRelacion->kodi ?? ''));
+
+        $this->mbyllModalSkadimi();
+    }
+
+
+// NEW: përdoruesi zgjedh të shtojë vlerën shtesë mbi çmimin origjinal
+    public function shtoVlerenShtese()
+    {
+        if (!$this->mjetiSkaduarZgjedhur) {
+            return;
+        }
+
+        $this->eshteRegjistrimParaprak = false;
+        $this->inicializoModalinPerOperacionin($this->mjetiSkaduarZgjedhur);
+
+        // Mbishkruajmë vlerën me: e paguara ekzistuese + shtesa e llogaritur
+        $vleraEPaguarEkzistuese = $this->mjetiSkaduarZgjedhur->transaksioni->vlera ?? 0;
+        $this->modal_vlera = round($vleraEPaguarEkzistuese + $this->vlera_shtese, 2);
+
+        $this->mbyllModalSkadimi();
+    }
+
+// NEW: përdoruesi zgjedh të injorojë tejkalimin e vogël dhe vazhdon normalisht
+    public function injoroVlerenShtese()
+    {
+        if (!$this->mjetiSkaduarZgjedhur) {
+            return;
+        }
+
+        $this->eshteRegjistrimParaprak = false;
+        $this->inicializoModalinPerOperacionin($this->mjetiSkaduarZgjedhur);
+
+        $this->mbyllModalSkadimi();
+    }
+
+// NEW: mbyll modalin e skadimit pa vazhduar (Anulo)
+    public function mbyllModalSkadimi()
+    {
+        $this->shfaqModalSkadimi = false;
+        $this->mjetiSkaduarZgjedhur = null;
+        $this->detajetSkadimit = [];
+        $this->vlera_shtese = 0;
+        $this->vlera_dite_plota = 0;
+        $this->shtese_sasia_plote = 0;
+        $this->shtese_id_kategoria_plote = null;
+        $this->shtese_id_fasha_plote = null;
+        $this->shtese_id_kategoria_gjysme = null;
+        $this->shtese_id_fasha_gjysme = null;
+        $this->shtese_id_fasha = null;
+        $this->shtese_sasia = null;
+    }
+
+
     // ════════════════════════════════════════════════
     // Ruajtja e transaksionit — tani vepron ndryshe në bazë të flag-ut
     // ════════════════════════════════════════════════
@@ -534,11 +986,69 @@ class LiveKryejOperacionet extends Component
 
     // Në Livewire Component
 
+// NEW: gjen çiftin {dite, nate} pavarësisht nëse $kategoria është vetë 24h,
+// ose është vetë njëra gjysmë (p.sh. paguar direkt "Natë")
+    private function gjejFamiljeGjysmesh($kategoria): ?array
+    {
+        // Rasti 1: kategoria e paguar ËSHTË vetë kategoria 24h (ka të dyja fushat)
+        if ($kategoria->id_kategoria_gjysme_dite && $kategoria->id_kategoria_gjysme_nate) {
+            return [
+                'dite' => $kategoria->gjysmaDite,
+                'nate' => $kategoria->gjysmaNate,
+            ];
+        }
+
+        // Rasti 2: kategoria e paguar ËSHTË vetë një gjysmë (p.sh. "Natë" e vetme)
+        // Kërkojmë prindin 24h që e referon këtë si gjysmë
+        $prindi = KategoriaPageses::where('id_kategoria_gjysme_dite', $kategoria->id)
+            ->orWhere('id_kategoria_gjysme_nate', $kategoria->id)
+            ->first();
+
+        if ($prindi) {
+            return [
+                'dite' => $prindi->gjysmaDite,
+                'nate' => $prindi->gjysmaNate,
+            ];
+        }
+
+        return null; // s'ka config fare — s'lidhet me asnjë "familje" gjysmash
+    }
+    private function gjenGjysmenAktive($kategoriaPlote): ?array
+    {
+        $familja = $this->gjejFamiljeGjysmesh($kategoriaPlote); // NEW
+
+        if (!$familja) {
+            return null;
+        }
+
+        $tani = Carbon::now()->format('H:i');
+        $kandidatet = collect([$familja['dite'], $familja['nate']])->filter(); // NEW
+
+        foreach ($kandidatet as $gjysme) {
+            $fasha = \App\Models\Admin\OretCmimi::where('id_kategoria_rezervimit', $gjysme->id)
+                ->whereNotNull('ora_nisje')->whereNotNull('ora_mbarimi')
+                ->first();
+
+            if (!$fasha) continue;
+
+            $brenda = $fasha->ora_nisje <= $fasha->ora_mbarimi
+                ? ($tani >= $fasha->ora_nisje && $tani < $fasha->ora_mbarimi)
+                : ($tani >= $fasha->ora_nisje || $tani < $fasha->ora_mbarimi);
+
+            if ($brenda) {
+                return ['kategoria' => $gjysme, 'fasha' => $fasha];
+            }
+        }
+
+        return null;
+    }
 
     public function render()
     {
         // 1. Mjetet që janë aktualisht në parking (Kodi ekzistues)
         $mjetePrezent = Operacionet::where('status', 'prezent')
+            ->with(['transaksioni.prenotimi', 'transaksioni.fashaOrare', 'transaksioni.monedha'])
+
             ->when($this->kerkoTarge, function($query) {
                 $query->where('targa', 'like', '%' . strtoupper($this->kerkoTarge) . '%');
             })
