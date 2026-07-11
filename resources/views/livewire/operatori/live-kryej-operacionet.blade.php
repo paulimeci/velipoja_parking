@@ -20,40 +20,53 @@
 
                 <div class="tab-content" id="myTabContent">
                     <div class="tab-pane fade show active" id="preview-tab-pane" role="tabpanel" aria-labelledby="preview-tab" tabindex="0">
-                        {{-- ═══ Forma e regjistrimit ═══ --}}
-                        <form wire:submit.prevent="ruajOperacionin">
-                            <div class="row align-items-end">
 
-                                <div class="col-lg-6">
-                                    <div class="form-group mb-4">
-                                        <label class="label text-secondary fw-medium mb-2">{{ __('Targa e Makinës') }} <span class="text-danger">*</span></label>
+                        <form wire:submit.prevent="ruajOperacionin">
+                            <div class="row gx-2 flex-nowrap align-items-center"> {{-- Ndryshuar në align-items-center --}}
+
+                                {{-- Targa --}}
+                                <div class="col-6">
+                                    <div class="form-group mb-0">
+                                        <label class="label text-secondary fw-medium mb-1.5 fs-11 text-nowrap" id="label-targa">{{ __('Targa') }} <span class="text-danger">*</span></label>
                                         <input type="text" wire:model="targa"
-                                               class="form-control h-60 rounded-3 @error('targa') is-invalid @enderror"
-                                               placeholder="{{ __('Shkruaj targën (p.sh. AB123CD)') }}">
-                                        @error('targa') <div class="invalid-feedback mt-1">{{ $message }}</div> @enderror
+                                               class="form-control h-45 rounded-3 fs-13 @error('targa') is-invalid @enderror"
+                                               placeholder="{{ __('AB123CD') }}">
                                     </div>
                                 </div>
 
-                                <div class="col-lg-6">
-                                    <div class="form-group mb-4 d-flex align-items-center h-60">
-                                        <div class="form-check form-switch custom-switch">
-                                            <input class="form-check-input" type="checkbox" role="switch" id="paguarSwitch"
-                                                   wire:model.live="eshte_paguar" style="width: 2.5em; height: 1.25em; cursor: pointer;">
-                                            <label class="form-check-input-label text-secondary fw-medium ms-2" for="paguarSwitch" style="cursor: pointer;">
-                                                {{ __('Është Paguar?') }}
+                                {{-- Switch-i --}}
+                                <div class="col-3">
+                                    {{-- Kjo hapësirë mb-1.5 fs-11 dhe teksti i padukshëm shërben për të balancuar label-in e targës --}}
+                                    <div class="text-nowrap mb-1.5 fs-11 invisible" aria-hidden="true">&nbsp;</div>
+
+                                    <div class="d-flex align-items-center justify-content-center border rounded-3 bg-light w-100 px-1" style="height: 45px;">
+                                        <div class="form-check form-switch custom-switch p-0 m-0 d-flex flex-column flex-sm-row align-items-center justify-content-center text-center">
+                                            <input class="form-check-input m-0" type="checkbox" role="switch" id="paguarSwitch"
+                                                   wire:model.live="eshte_paguar" style="width: 2.2em; height: 1.1em; cursor: pointer;">
+                                            <label class="form-check-input-label text-secondary fw-medium ms-sm-1.5 fs-10 mb-0 text-nowrap" for="paguarSwitch" style="cursor: pointer;">
+                                                {{ __('Paguar?') }}
                                             </label>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div class="col-12 text-end mt-2">
-                                    <button type="submit" class="btn btn-primary py-2 px-4 fs-14 fw-semibold rounded-3 shadow-sm">
-                                        <span wire:loading wire:target="ruajOperacionin" class="spinner-border spinner-border-sm me-2"></span>
-                                        <i class="ri-save-line me-1"></i> {{ __('Regjistro Operacionin') }}
+                                {{-- Butoni --}}
+                                <div class="col-3">
+                                    {{-- E njëjta hapësirë e padukshme edhe këtu --}}
+                                    <div class="text-nowrap mb-1.5 fs-11 invisible" aria-hidden="true">&nbsp;</div>
+
+                                    <button type="submit" class="btn btn-primary h-45 w-100 rounded-3 shadow-sm d-flex align-items-center justify-content-center px-1" title="{{ __('Regjistro') }}">
+                                        <span wire:loading wire:target="ruajOperacionin" class="spinner-border spinner-border-sm"></span>
+                                        <i class="ri-save-line fs-14" wire:loading.remove wire:target="ruajOperacionin"></i>
+                                        <span class="ms-1 fs-11 d-none d-sm-inline text-nowrap">{{ __('Ruaj') }}</span>
                                     </button>
                                 </div>
 
                             </div>
+
+                            @error('targa')
+                            <div class="text-danger mt-1 fs-11">{{ $message }}</div>
+                            @enderror
                         </form>
                     </div>
                 </div>
