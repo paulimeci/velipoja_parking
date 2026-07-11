@@ -440,15 +440,16 @@ class LiveKryejOperacionet extends Component
         }
 
         if ($cmimiNjesi <= 0) {
-            // Siguri: nëse s'gjendet çmimi, kthehu te sjellja e vjetër (bazuar te sasia)
             return (int) TransaksioniOperacionit::where('id_operacionit', $mjeti->id)
                 ->where('id_prenotimit', $idKategoriaPlote)
                 ->whereIn('status_pagesa', ['paguar', 'pagese_shtese'])
                 ->sum('sasia');
         }
 
-        // NEW: njësi e plotë numërohet VETËM nëse shuma e paguar e mbulon çmimin e plotë
-        return (int) floor($vleraTotalePaguar / $cmimiNjesi);
+        // FIX: shtojmë një epsilon të vogël për të evituar gabimet e floating point
+        // (p.sh. 5000/1000 mund të japë 4.999999999999999 në vend të 5.0)
+        $njesi = $vleraTotalePaguar / $cmimiNjesi;
+        return (int) floor($njesi + 0.0001);
     }
 
 // NEW: kontrollon nëse gjysma (ditë ose natë) është regjistruar tashmë si e paguar
