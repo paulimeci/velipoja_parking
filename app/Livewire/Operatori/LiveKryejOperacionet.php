@@ -69,6 +69,8 @@ class LiveKryejOperacionet extends Component
     public $edit_sasia = 1;
     public $edit_vlera = '';
     public $isEditModalOpen = false;
+    public $detajetPeriudhaveFikse = [];
+    public $shfaqDetajetShtese = false;
 
     public function mount()
     {
@@ -149,6 +151,9 @@ class LiveKryejOperacionet extends Component
         $this->eshteRegjistrimParaprak = false;
         $this->inicializoModalinPerOperacionin($operacioni);
     }
+
+
+
 
     private function inicializoModalinPerOperacionin(Operacionet $operacioni)
     {
@@ -508,6 +513,7 @@ class LiveKryejOperacionet extends Component
     }
     // NEW: llogarit sa duhet paguar shtesë krahasuar me vlerën ekzistuese të paguar
     // NEW: llogarit sa duhet paguar shtesë krahasuar me vlerën ekzistuese të paguar
+
     private function llogaritVlerenShtese(Operacionet $operacioni, array $statusi): void
     {
         $transaksioni = $operacioni->transaksioni;
@@ -521,22 +527,20 @@ class LiveKryejOperacionet extends Component
         $fasha     = $transaksioni->fashaOrare;
         $monedhaId = $transaksioni->monedha;
 
-        // Orari fiks (Ditë 09-19 / Natë 19-09) ka përparësi — skenar i ndarë (kalim fashe sipas orës së murit)
         // Orari fiks (Ditë 09-19 / Natë 19-09) ka përparësi — akumulon TË GJITHA periudhat e kaluara
         if ($fasha && $fasha->ora_nisje && $fasha->ora_mbarimi) {
             $hyrja = Carbon::parse($operacioni->nisja);
             $tani  = Carbon::now();
 
-            // Momenti kur ka skaduar pagesa origjinale (fundi i fashës së paguar)
             $momentiSkadimit = $this->llogaritSkadimineOresFikse($hyrja, $fasha, $transaksioni->sasia ?? 1);
 
             // NEW: akumulon çmimin e ÇDO fashe fikse të kaluar nga skadimi deri tani
-            // (p.sh. Natë 300 + Ditë 300 + Natë 300 = 900, jo vetëm fasha e fundit)
             $rezultati = $this->mblidhVlerenPerPeriudhatFikse($momentiSkadimit, $tani, $monedhaId);
 
-            $this->vlera_shtese    = $rezultati['vlera'];
-            $this->shtese_id_fasha = $rezultati['fasha']?->id;
-            $this->shtese_sasia    = 1;
+            $this->vlera_shtese           = $rezultati['vlera'];
+            $this->shtese_id_fasha        = $rezultati['fasha']?->id;
+            $this->shtese_sasia           = 1;
+            $this->detajetPeriudhaveFikse = $rezultati['detaje']; // NEW
 
             $this->vlera_dite_plota          = 0;
             $this->shtese_sasia_plote        = 0;
@@ -545,6 +549,7 @@ class LiveKryejOperacionet extends Component
             $this->shtese_id_fasha_gjysme     = null;
             return;
         }
+
         // ═══ SKENARI YT — me rregullin e rrumbullakosjes së shtuar ═══
         if ($kategoria && $kategoria->eshteNjesiaDite()) {
             $oreNjesie = $kategoria->oreNjesiReale();
@@ -560,14 +565,12 @@ class LiveKryejOperacionet extends Component
                 : 0;
 
             // NEW: nëse mbetja kalon gjysmën e njësisë (>12h), e trajtojmë si NJË NJËSI TJETËR E PLOTË
-            // në vend të shumës së 2 gjysmave
             $gjysmaOre = $oreNjesie / 2;
             if ($mbetetOre > $gjysmaOre) {
                 $njesiPlotaPerTuPaguar += 1;
-                $mbetetOre = 0; // s'ka mbetje pas kësaj — u përfshi si njësi e plotë
+                $mbetetOre = 0;
             }
 
-            // NEW: vlera e ditëve/netëve të plota — mbetet e brendshme, jo e shfaqur veças
             $this->vlera_dite_plota          = round($cmimiNjesi * $njesiPlotaPerTuPaguar, 2);
             $this->shtese_sasia_plote        = $njesiPlotaPerTuPaguar;
             $this->shtese_id_kategoria_plote = $kategoria->id;
@@ -592,8 +595,8 @@ class LiveKryejOperacionet extends Component
                 $this->shtese_id_fasha_gjysme = null;
             }
 
-            // NEW: BASHKUAR NË NJË SHIFËR TË VETME — kjo është ajo që shfaqet dhe editohet në modal
             $this->vlera_shtese = round($this->vlera_dite_plota + $vleraGjysme, 2);
+            $this->detajetPeriudhaveFikse = []; // NEW: s'aplikohet për këtë rast
             return;
         }
 
@@ -617,6 +620,7 @@ class LiveKryejOperacionet extends Component
             $this->shtese_id_kategoria_plote = null;
             $this->shtese_id_kategoria_gjysme = null;
             $this->shtese_id_fasha_gjysme = null;
+            $this->detajetPeriudhaveFikse = []; // NEW: s'aplikohet për këtë rast
         }
     }
     private function gjenGjysmenNeMomentin($kategoriaPlote, Carbon $momenti): ?array
@@ -647,12 +651,14 @@ class LiveKryejOperacionet extends Component
 
         return null;
     }
+
     private function mblidhVlerenPerPeriudhatFikse(Carbon $nga, Carbon $deri, int $monedhaId): array
     {
         $vleraTotale = 0;
         $cursor = $nga->copy();
         $fashaFundit = null;
         $siguria = 0; // mbrojtje kundër loop të pafundme
+        $detaje = []; // NEW: lista e segmenteve (për shfaqje në modal)
 
         while ($cursor->lessThan($deri) && $siguria < 60) {
             $fasha = $this->gjejFashenFikseNeMomentin($cursor);
@@ -669,16 +675,25 @@ class LiveKryejOperacionet extends Component
             }
 
             $cmimiMonedhes = $fasha->cmimet()->where('monedha_id', $monedhaId)->first();
-            $vleraTotale += $cmimiMonedhes ? $cmimiMonedhes->vlera : 0;
+            $vleraSegmenti = $cmimiMonedhes ? $cmimiMonedhes->vlera : 0;
+            $vleraTotale += $vleraSegmenti;
+
+            // NEW: ruajmë çdo segment veç e veç
+            $detaje[] = [
+                'kategoria' => $fasha->kategoria->kategoria ?? '-',
+                'nga'       => $cursor->format('d/m H:i'),
+                'deri'      => $fundiBllokut->format('d/m H:i'),
+                'vlera'     => round($vleraSegmenti, 2),
+            ];
 
             $cursor = $fundiBllokut->greaterThan($deri) ? $deri->copy() : $fundiBllokut;
             $siguria++;
         }
 
-        return ['vlera' => round($vleraTotale, 2), 'fasha' => $fashaFundit];
+        return ['vlera' => round($vleraTotale, 2), 'fasha' => $fashaFundit, 'detaje' => $detaje];
     }
 
-// NEW: gjen fashën fikse aktive për një moment specifik (jo domosdoshmërisht "tani")
+
     private function gjejFashenFikseNeMomentin(Carbon $momenti): ?\App\Models\Admin\OretCmimi
     {
         $ora = $momenti->format('H:i');
@@ -815,6 +830,8 @@ class LiveKryejOperacionet extends Component
         $this->shtese_id_fasha_gjysme = null;
         $this->shtese_id_fasha = null;
         $this->shtese_sasia = null;
+        $this->detajetPeriudhaveFikse = []; // NEW
+        $this->shfaqDetajetShtese = false;  // NEW
     }
 
 
