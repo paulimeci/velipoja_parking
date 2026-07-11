@@ -522,22 +522,29 @@ class LiveKryejOperacionet extends Component
         $monedhaId = $transaksioni->monedha;
 
         // Orari fiks (Ditë 09-19 / Natë 19-09) ka përparësi — skenar i ndarë (kalim fashe sipas orës së murit)
+        // Orari fiks (Ditë 09-19 / Natë 19-09) ka përparësi — akumulon TË GJITHA periudhat e kaluara
         if ($fasha && $fasha->ora_nisje && $fasha->ora_mbarimi) {
-            $fashaERreNeVazhdim = $this->gjejFashenFikseAktive($fasha->id);
-            if ($fashaERreNeVazhdim) {
-                $cmimiMonedhes = $fashaERreNeVazhdim->cmimet()->where('monedha_id', $monedhaId)->first();
-                $this->vlera_shtese    = $cmimiMonedhes ? round($cmimiMonedhes->vlera, 2) : 0;
-                $this->shtese_id_fasha = $fashaERreNeVazhdim->id;
-                $this->shtese_sasia    = 1;
-                $this->vlera_dite_plota = 0;
-                $this->shtese_sasia_plote = 0;
-                $this->shtese_id_kategoria_plote = null;
-                $this->shtese_id_kategoria_gjysme = null;
-                $this->shtese_id_fasha_gjysme = null;
-                return;
-            }
-        }
+            $hyrja = Carbon::parse($operacioni->nisja);
+            $tani  = Carbon::now();
 
+            // Momenti kur ka skaduar pagesa origjinale (fundi i fashës së paguar)
+            $momentiSkadimit = $this->llogaritSkadimineOresFikse($hyrja, $fasha, $transaksioni->sasia ?? 1);
+
+            // NEW: akumulon çmimin e ÇDO fashe fikse të kaluar nga skadimi deri tani
+            // (p.sh. Natë 300 + Ditë 300 + Natë 300 = 900, jo vetëm fasha e fundit)
+            $rezultati = $this->mblidhVlerenPerPeriudhatFikse($momentiSkadimit, $tani, $monedhaId);
+
+            $this->vlera_shtese    = $rezultati['vlera'];
+            $this->shtese_id_fasha = $rezultati['fasha']?->id;
+            $this->shtese_sasia    = 1;
+
+            $this->vlera_dite_plota          = 0;
+            $this->shtese_sasia_plote        = 0;
+            $this->shtese_id_kategoria_plote = null;
+            $this->shtese_id_kategoria_gjysme = null;
+            $this->shtese_id_fasha_gjysme     = null;
+            return;
+        }
         // ═══ SKENARI YT — me rregullin e rrumbullakosjes së shtuar ═══
         if ($kategoria && $kategoria->eshteNjesiaDite()) {
             $oreNjesie = $kategoria->oreNjesiReale();
