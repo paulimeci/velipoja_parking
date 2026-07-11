@@ -438,6 +438,7 @@
                             @error('vlera_shtese') <div class="invalid-feedback d-block mt-1 fs-12">{{ $message }}</div> @enderror
                             <p class="text-secondary fs-11 mt-2 mb-0">{{ __('Kjo është VLERA TOTALE shtesë që do të regjistrohet si 1 pagesë. Mund ta ndryshoni.') }}</p>
 
+
                             {{-- NEW: buton për detajet e periudhave --}}
                             @if(count($detajetPeriudhaveFikse) > 0)
                                 <button type="button" class="btn btn-link btn-sm text-warning fw-semibold px-0 mt-2 fs-12"
