@@ -118,12 +118,24 @@
 
                             {{-- Vetëm butoni Edito (Dropdown-i u hoq) --}}
                             {{-- Vetëm butoni Edito që thërret funksionin përkatës --}}
-                            <button type="button"
-                                    class="btn p-0 border-0 bg-transparent line-height-1 text-secondary hover-primary d-flex align-items-center"
-                                    title="{{ __('Edito') }}"
-                                    wire:click="perditesoMjetinPrezent({{ $mjeti->id }})">
-                                <i class="material-symbols-outlined fs-16">edit</i>
-                            </button>
+                            {{-- Butonat Edito & Fshi --}}
+                            <div class="d-flex align-items-center gap-2">
+                                <button type="button"
+                                        class="btn p-0 border-0 bg-transparent line-height-1 text-secondary hover-primary d-flex align-items-center"
+                                        title="{{ __('Edito') }}"
+                                        wire:click="perditesoMjetinPrezent({{ $mjeti->id }})">
+                                    <i class="material-symbols-outlined fs-16">edit</i>
+                                </button>
+
+                                @role('admin')
+                                <button type="button"
+                                        class="btn p-0 border-0 bg-transparent line-height-1 text-danger d-flex align-items-center"
+                                        title="{{ __('Fshi') }}"
+                                        wire:click="konfirmoFshirjen({{ $mjeti->id }})">
+                                    <i class="material-symbols-outlined fs-16">delete</i>
+                                </button>
+                                @endrole
+                            </div>
                         </div>
 
                         {{-- SEKSIONI QENDROR: TARGA --}}
@@ -508,6 +520,54 @@
         </div>
     @endif
 
+    @if($shfaqModalFshirje && $mjetiPerFshirje)
+        <div class="modal fade show d-block" id="modalFshirjeMjeti" tabindex="-1" role="dialog" style="background: rgba(0,0,0,0.6); z-index: 1070;">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 bg-white shadow rounded-3" style="border: 2px solid #dc3545 !important;">
+
+                    <div class="modal-header border-bottom p-4" style="background: rgba(220,53,69,0.06);">
+                        <h5 class="modal-title fs-16 fw-bold text-danger mb-0">
+                            <i class="ri-error-warning-fill align-middle me-1 fs-22"></i>
+                            {{ __('Konfirmo Fshirjen') }}
+                        </h5>
+                        <button type="button" class="btn-close shadow-none" wire:click="mbyllModalFshirjen"></button>
+                    </div>
+
+                    <div class="modal-body p-4">
+                        <div class="text-center mb-3">
+                            <div class="d-inline-flex align-items-center justify-content-center bg-light border border-dark border-2 rounded-2 px-4 py-1" style="min-width: 160px; height: 45px;">
+                            <span class="fs-20 fw-black text-dark font-monospace text-uppercase" style="letter-spacing: 0.8px;">
+                                {{ $mjetiPerFshirje->targa }}
+                            </span>
+                            </div>
+                        </div>
+
+                        <div class="bg-danger bg-opacity-10 border border-danger rounded-3 p-3 text-center">
+                            <i class="ri-alert-line text-danger fs-24 mb-2 d-block"></i>
+                            <p class="text-dark fs-13 fw-medium mb-1">
+                                {{ __('A je i sigurt që dëshiron ta fshish këtë mjet?') }}
+                            </p>
+                            <p class="text-secondary fs-12 mb-0">
+                                {{ __('Ky veprim do të fshijë përgjithmonë mjetin dhe të gjitha pagesat e lidhura me të (fillestare dhe shtesë). Nuk mund të kthehet mbrapsht.') }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer border-top p-3 d-flex justify-content-end gap-2 bg-light bg-opacity-50">
+                        <button type="button" class="btn btn-secondary py-2 px-3 fs-13 fw-semibold rounded-3 text-dark border-0 bg-gray bg-opacity-10" wire:click="mbyllModalFshirjen">
+                            {{ __('Anulo') }}
+                        </button>
+                        <button type="button" class="btn btn-danger py-2 px-3 fs-13 fw-semibold rounded-3 text-white" wire:click="fshijMjetinPrezent">
+                            <span wire:loading wire:target="fshijMjetinPrezent" class="spinner-border spinner-border-sm me-1"></span>
+                            <i class="ri-delete-bin-line me-1"></i> {{ __('Po, Fshije') }}
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    @endif
+
 
 {{-- ═══════════════════════════════════════
           SEKSIONI I RI: MJETET E SHËRBYERA (LARGUR)
@@ -778,6 +838,22 @@
                     </div>
 
                     <div class="modal-body p-4">
+
+                        {{-- NEW: kategoria e zgjedhur s'ka fashë/çmim të konfiguruar në sistem --}}
+                        @php
+                            $eshteNjesiDiteEdit = $kategoriaEditAktuale && $kategoriaEditAktuale->njesia_matjes === 'dite';
+                            $mungonKonfigurimi = $kategoriaEditAktuale && !$eshteNjesiDiteEdit && $fashatOrareEdit->isEmpty();
+                        @endphp
+
+                        @if($mungonKonfigurimi)
+                            <div class="alert alert-danger fs-12 py-2 mb-3 d-flex align-items-start">
+                                <i class="ri-error-warning-line me-2 fs-16"></i>
+                                <div>
+                                    {{ __('Kjo kategori ("') }}{{ $kategoriaEditAktuale->kategoria }}{{ __('") s\'ka asnjë fashë/çmim të konfiguruar te sistemi. Zgjidh një kategori tjetër ose kontakto administratorin për ta konfiguruar.') }}
+                                </div>
+                            </div>
+                        @endif
+
                         <div class="row g-3">
 
                             <div class="col-12">
@@ -792,11 +868,12 @@
                             <div class="col-6">
                                 <div class="form-group">
                                     <label class="label text-secondary fw-medium mb-1 fs-12">{{ __('Lloji i Pagesës') }}</label>
-                                    <select wire:model.live="edit_id_kategoria" class="form-select fs-13 py-2 rounded-3">
+                                    <select wire:model.live="edit_id_kategoria" class="form-select fs-13 py-2 rounded-3 @error('edit_id_kategoria') is-invalid @enderror">
                                         @foreach($kategorite as $kategoria)
                                             <option value="{{ $kategoria->id }}">{{ $kategoria->kategoria }}</option>
                                         @endforeach
                                     </select>
+                                    @error('edit_id_kategoria') <div class="invalid-feedback d-block fs-12">{{ $message }}</div> @enderror
                                 </div>
                             </div>
 
@@ -811,7 +888,7 @@
                                 </div>
                             </div>
 
-                            @if($kategoriaEditAktuale && $kategoriaEditAktuale->njesia_matjes === 'dite')
+                            @if($eshteNjesiDiteEdit)
                                 <div class="col-12">
                                     <div class="form-group">
                                         <label class="label text-secondary fw-medium mb-1 fs-12">{{ __('Sa Ditë / Netë?') }}</label>
@@ -822,7 +899,7 @@
                                 <div class="col-12">
                                     <div class="form-group">
                                         <label class="label text-secondary fw-medium mb-1 fs-12">{{ __('Fasha Orare') }}</label>
-                                        <select wire:model.live="edit_id_fasha" class="form-select fs-13 py-2 rounded-3">
+                                        <select wire:model.live="edit_id_fasha" class="form-select fs-13 py-2 rounded-3 @error('edit_id_fasha') is-invalid @enderror">
                                             @forelse($fashatOrareEdit as $fasha)
                                                 <option value="{{ $fasha->id }}">
                                                     @if($fasha->ora_nisje && $fasha->ora_mbarimi)
@@ -835,6 +912,7 @@
                                                 <option value="">{{ __('Nuk ka fasha të përcaktuara') }}</option>
                                             @endforelse
                                         </select>
+                                        @error('edit_id_fasha') <div class="invalid-feedback d-block fs-12">{{ $message }}</div> @enderror
                                     </div>
                                 </div>
                             @endif
@@ -846,9 +924,8 @@
                                         <input type="number" step="0.01" min="0" wire:model="edit_vlera"
                                                class="form-control fs-14 fw-semibold py-2 @error('edit_vlera') is-invalid @enderror" placeholder="0.00">
                                         <span class="input-group-text bg-light text-secondary border-start-0 fw-bold fs-12">
-                {{ collect($monedhat)->firstWhere('id', $edit_id_monedha)->kodi ?? 'LEK' }}
-            </span>
-                                        {{-- NEW: rikalkulim vetëm kur klikohet, jo automatik --}}
+                                        {{ collect($monedhat)->firstWhere('id', $edit_id_monedha)->kodi ?? 'LEK' }}
+                                    </span>
                                         <button type="button" class="btn btn-outline-secondary fs-12" wire:click="rikalkuloVlerenEditit" title="{{ __('Rikalko çmimin e plotë') }}">
                                             <i class="ri-refresh-line"></i>
                                         </button>
@@ -861,12 +938,14 @@
                         </div>
                     </div>
 
-
                     <div class="modal-footer border-top p-3 d-flex justify-content-end gap-2 bg-light bg-opacity-50">
                         <button type="button" class="btn btn-secondary py-2 px-3 fs-13 fw-semibold rounded-3 text-dark border-0 bg-gray bg-opacity-10" wire:click="mbyllModalEditimi">
                             {{ __('Anulo') }}
                         </button>
-                        <button type="button" class="btn btn-success py-2 px-3 fs-13 fw-semibold rounded-3 text-white" wire:click="ruajEditimin">
+                        <button type="button"
+                                class="btn btn-success py-2 px-3 fs-13 fw-semibold rounded-3 text-white"
+                                wire:click="ruajEditimin"
+                                @if($mungonKonfigurimi) disabled @endif>
                             <span wire:loading wire:target="ruajEditimin" class="spinner-border spinner-border-sm me-1"></span>
                             <i class="ri-save-line me-1"></i> {{ __('Ruaj Ndryshimet') }}
                         </button>
