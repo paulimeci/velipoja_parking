@@ -72,6 +72,9 @@ class LiveKryejOperacionet extends Component
     public $detajetPeriudhaveFikse = [];
     public $shfaqDetajetShtese = false;
 
+    public $shfaqModalFshirje = false;
+    public $mjetiPerFshirje = null;
+
     public function mount()
     {
         $kategoriaDefault = KategoriaPageses::where('is_default', 1)->first();
@@ -1201,19 +1204,38 @@ class LiveKryejOperacionet extends Component
             'edit_nisja.required' => 'Ju lutem vendosni orën e hyrjes.',
         ]);
 
+        // NEW: nëse s'ka fashë të zgjedhur (mund të ndodhë kur kategoria s'ka çmim të konfiguruar në DB),
+        // provo ta gjejmë përsëri automatikisht para se të ruajmë
+        if (!$this->edit_id_fasha) {
+            $kategoria = KategoriaPageses::find($this->edit_id_kategoria);
+
+            if ($kategoria && $kategoria->eshteNjesiaDite()) {
+                $njesiaCmimi = \App\Models\Admin\OretCmimi::where('id_kategoria_rezervimit', $this->edit_id_kategoria)->first();
+                $this->edit_id_fasha = $njesiaCmimi?->id;
+            } else {
+                $fashaEPare = \App\Models\Admin\OretCmimi::where('id_kategoria_rezervimit', $this->edit_id_kategoria)
+                    ->orderBy('nga')->first();
+                $this->edit_id_fasha = $fashaEPare?->id;
+            }
+        }
+
+        // NEW: nëse ende s'gjendet dot asnjë fashë, ndalo ruajtjen me mesazh të qartë
+        if (!$this->edit_id_fasha) {
+            $this->addError('edit_id_kategoria', 'Kjo kategori s\'ka asnjë çmim/fashë të konfiguruar në sistem. Kontrollo te "Çmimet" përpara se ta ruash.');
+            return;
+        }
+
         $operacioni = Operacionet::with('transaksioni')->find($this->mjetiId);
         if (!$operacioni) {
             return;
         }
 
-        // NEW: përditësim i orës/datës së hyrjes
         $operacioni->nisja = Carbon::parse($this->edit_nisja);
         $operacioni->save();
 
         $vlera = (float) ($this->edit_vlera ?: 0);
 
         if ($vlera > 0) {
-            // NEW: krijon ose përditëson rreshtin e vetëm "paguar" (parapagesa)
             TransaksioniOperacionit::updateOrCreate(
                 ['id_operacionit' => $operacioni->id, 'status_pagesa' => 'paguar'],
                 [
@@ -1225,7 +1247,6 @@ class LiveKryejOperacionet extends Component
                 ]
             );
         } elseif ($operacioni->transaksioni) {
-            // NEW: nëse vlera u zbrit në 0, heqim parapagesën ekzistuese
             $operacioni->transaksioni->delete();
         }
 
@@ -1243,6 +1264,46 @@ class LiveKryejOperacionet extends Component
         $this->edit_id_fasha = null;
         $this->edit_sasia = 1;
         $this->edit_vlera = '';
+    }
+
+
+    // NEW: hap modalin e konfirmimit, pa fshirë ende asgjë
+    public function konfirmoFshirjen($id)
+    {
+        $this->mjetiPerFshirje = Operacionet::find($id);
+
+        if ($this->mjetiPerFshirje) {
+            $this->shfaqModalFshirje = true;
+        }
+    }
+
+// NEW: fshirja reale, thirret vetëm pasi operatori konfirmon në modal
+    public function fshijMjetinPrezent()
+    {
+        if (!$this->mjetiPerFshirje) {
+            return;
+        }
+
+        $operacioni = $this->mjetiPerFshirje;
+
+        $idTransaksionesh = TransaksioniOperacionit::where('id_operacionit', $operacioni->id)->pluck('id');
+
+        if ($idTransaksionesh->isNotEmpty()) {
+            \App\Models\Admin\NdryshimiOperatorit::whereIn('id_transaksionit', $idTransaksionesh)->delete();
+        }
+
+        TransaksioniOperacionit::where('id_operacionit', $operacioni->id)->delete();
+        $operacioni->delete();
+
+        session()->flash('success', 'Mjeti u fshi me sukses së bashku me pagesat e lidhura.');
+
+        $this->mbyllModalFshirjen();
+    }
+
+    public function mbyllModalFshirjen()
+    {
+        $this->shfaqModalFshirje = false;
+        $this->mjetiPerFshirje = null;
     }
 
     public function render()
