@@ -431,33 +431,13 @@ class LiveKryejOperacionet extends Component
 
     private function njesiPlotaTePaguara(Operacionet $mjeti, int $idKategoriaPlote): int
     {
-        $transaksionBaze = $mjeti->transaksioni;
-        $monedhaId = $transaksionBaze->monedha ?? null;
-
-        $vleraTotalePaguar = (float) TransaksioniOperacionit::where('id_operacionit', $mjeti->id)
+        // Bazohemi VETËM te sasia reale e ruajtur në databazë (jo te çmimi/vlera),
+        // sepse çmimi mund të jetë ulur/negociuar nga klienti dhe s'duhet
+        // të ndikojë në llogaritjen e njësive faktike të paguara.
+        return (int) TransaksioniOperacionit::where('id_operacionit', $mjeti->id)
             ->where('id_prenotimit', $idKategoriaPlote)
             ->whereIn('status_pagesa', ['paguar', 'pagese_shtese'])
-            ->sum('vlera');
-
-        $njesiaCmimi = \App\Models\Admin\OretCmimi::where('id_kategoria_rezervimit', $idKategoriaPlote)->first();
-        $cmimiNjesi = 0;
-
-        if ($njesiaCmimi && $monedhaId) {
-            $cmimiMonedhes = $njesiaCmimi->cmimet()->where('monedha_id', $monedhaId)->first();
-            $cmimiNjesi = $cmimiMonedhes->vlera ?? 0;
-        }
-
-        if ($cmimiNjesi <= 0) {
-            return (int) TransaksioniOperacionit::where('id_operacionit', $mjeti->id)
-                ->where('id_prenotimit', $idKategoriaPlote)
-                ->whereIn('status_pagesa', ['paguar', 'pagese_shtese'])
-                ->sum('sasia');
-        }
-
-        // FIX: shtojmë një epsilon të vogël për të evituar gabimet e floating point
-        // (p.sh. 5000/1000 mund të japë 4.999999999999999 në vend të 5.0)
-        $njesi = $vleraTotalePaguar / $cmimiNjesi;
-        return (int) floor($njesi + 0.0001);
+            ->sum('sasia');
     }
 
 // NEW: kontrollon nëse gjysma (ditë ose natë) është regjistruar tashmë si e paguar
