@@ -78,25 +78,65 @@
 {{-- ═══════════════════════════════════════
       SEKSIONI 2: KËRKIMI DHE MJETET PREZENT
      ════════════════════════════════════════ --}}
-<div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3 mt-2">
-    <h5 class="fs-16 fw-semibold mb-0">{{ __('Mjetet Prezent në Parking') }}</h5>
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3 mt-2">
+        <h5 class="fs-16 fw-semibold mb-0">{{ __('Mjetet Prezent në Parking') }}</h5>
 
-    <div class="position-relative" style="min-width: 260px;">
-        <input type="text" wire:model.live="kerkoTarge"
-               class="form-control bg-white border border-secondary border-opacity-25 rounded-3 py-2 ps-4 pe-5 fs-13"
-               placeholder="{{ __('Kërko targë në parking...') }}">
-        <i class="ri-search-line position-absolute top-50 end-0 translate-middle-y me-3 text-secondary fs-16"></i>
+        <div class="position-relative" style="min-width: 260px;">
+            <input type="text" wire:model.live="kerkoTarge"
+                   class="form-control bg-white border border-secondary border-opacity-25 rounded-3 py-2 ps-4 pe-5 fs-13"
+                   placeholder="{{ __('Kërko targë në parking...') }}">
+            <i class="ri-search-line position-absolute top-50 end-0 translate-middle-y me-3 text-secondary fs-16"></i>
+        </div>
     </div>
-</div>
+
+    <div class="d-flex align-items-center gap-2 flex-wrap mb-3">
+        <div class="btn-group p-1 bg-light rounded-3 flex-wrap" role="group">
+            <button type="button" wire:click="$set('tabiMjetetPrezent', 'all')"
+                    class="btn btn-sm rounded-2 px-3 fs-13 fw-medium {{ $tabiMjetetPrezent === 'all' ? 'btn-primary text-white shadow-sm' : 'btn-light border-0 text-secondary' }}">
+                {{ __('Të Gjitha') }} <span class="badge bg-white text-dark ms-1">{{ $numratTabeve['all'] }}</span>
+            </button>
+            <button type="button" wire:click="$set('tabiMjetetPrezent', 'parapagim')"
+                    class="btn btn-sm rounded-2 px-3 fs-13 fw-medium {{ $tabiMjetetPrezent === 'parapagim' ? 'btn-primary text-white shadow-sm' : 'btn-light border-0 text-secondary' }}">
+                {{ __('Me Parapagim') }} <span class="badge bg-white text-dark ms-1">{{ $numratTabeve['parapagim'] }}</span>
+            </button>
+            <button type="button" wire:click="$set('tabiMjetetPrezent', 'pa_paguar')"
+                    class="btn btn-sm rounded-2 px-3 fs-13 fw-medium {{ $tabiMjetetPrezent === 'pa_paguar' ? 'btn-primary text-white shadow-sm' : 'btn-light border-0 text-secondary' }}">
+                {{ __('Pa Paguar') }} <span class="badge bg-white text-dark ms-1">{{ $numratTabeve['pa_paguar'] }}</span>
+            </button>
+            <button type="button" wire:click="$set('tabiMjetetPrezent', 'skaduar')"
+                    class="btn btn-sm rounded-2 px-3 fs-13 fw-medium {{ $tabiMjetetPrezent === 'skaduar' ? 'btn-primary text-white shadow-sm' : 'btn-light border-0 text-secondary' }}">
+                {{ __('Kaluar Afatin') }} <span class="badge bg-white text-dark ms-1">{{ $numratTabeve['skaduar'] }}</span>
+            </button>
+        </div>
+
+        @if($kerkoTarge)
+            <span class="fs-11 text-secondary fst-italic">
+            <i class="ri-information-line align-middle"></i>
+            {{ __('Duke kërkuar në të gjitha mjetet prezente, pavarësisht tab-it.') }}
+        </span>
+        @elseif(($numratTabeve[$tabiMjetetPrezent] ?? 0) > 20)
+            <span class="fs-11 text-secondary fst-italic">
+            <i class="ri-information-line align-middle"></i>
+            {{ __('Po shfaqen 18 nga :total mjete. Përdor kërkimin për t\'i gjetur të tjerat.', ['total' => $numratTabeve[$tabiMjetetPrezent]]) }}
+        </span>
+        @endif
+    </div>
+
 
     <div class="row gx-2 gy-2">
 
         @forelse($mjetePrezent as $mjeti)
             @php
                 $statusi = $this->statusiSkadimit($mjeti);
+
+                // NEW: ngjyra e kartës sipas statusit të pagesës
+                // Skaduar -> portokalli (si më parë), Paguar -> jeshile e zbehtë, Pa Paguar -> e kuqe e zbehtë
+                $klasaKartes = $statusi['skaduar']
+                    ? 'bg-warning bg-opacity-10'
+                    : ($statusi['paguar'] ? 'bg-success bg-opacity-10' : 'bg-danger bg-opacity-10');
             @endphp
             <div class="col-xxl-2 col-xl-2 col-lg-3 col-md-4 col-sm-6 col-6" wire:key="mjeti-{{ $mjeti->id }}">
-                <div class="card {{ $statusi['skaduar'] ? 'bg-warning bg-opacity-10' : 'bg-primary bg-opacity-10' }} border-0 rounded-3 mb-2 file-for-dark shadow-sm">
+                <div class="card {{ $klasaKartes }} border-0 rounded-3 mb-2 file-for-dark shadow-sm">
                     <div class="card-body p-2.5">
 
                         {{-- SEKSIONI SIPËR: STATUSI DHE ORA NË KRAH --}}
@@ -184,6 +224,25 @@
                 <p class="text-secondary text-center py-4 bg-white rounded-3 border">{{ __('Nuk u gjet asnjë mjet prezent.') }}</p>
             </div>
         @endforelse
+            @if(!$kerkoTarge && $faqetPrezent > 1)
+                <div class="d-flex justify-content-center align-items-center gap-2 mt-3">
+                    <button type="button" wire:click="faqjaMbrapaPrezent"
+                            class="btn btn-sm btn-light border rounded-3 px-3 fs-12"
+                            @if($faqjaPrezent <= 1) disabled @endif>
+                        <i class="ri-arrow-left-s-line align-middle"></i> {{ __('Mbrapa') }}
+                    </button>
+
+                    <span class="fs-12 text-secondary fw-medium">
+                {{ __('Faqja') }} {{ $faqjaPrezent }} / {{ $faqetPrezent }}
+            </span>
+
+                    <button type="button" wire:click="faqjaTjeterPrezent"
+                            class="btn btn-sm btn-light border rounded-3 px-3 fs-12"
+                            @if($faqjaPrezent >= $faqetPrezent) disabled @endif>
+                        {{ __('Përpara') }} <i class="ri-arrow-right-s-line align-middle"></i>
+                    </button>
+                </div>
+            @endif
     </div>
 
 {{-- ═══════════════════════════════════════

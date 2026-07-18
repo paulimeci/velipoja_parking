@@ -74,6 +74,9 @@ class LiveKryejOperacionet extends Component
 
     public $shfaqModalFshirje = false;
     public $mjetiPerFshirje = null;
+    public $tabiMjetetPrezent = 'all'; // all, parapagim, pa_paguar, skaduar
+    public $faqjaPrezent = 1;
+
 
     public function mount()
     {
@@ -428,6 +431,61 @@ class LiveKryejOperacionet extends Component
         ];
     }
 
+    private function perputhetMeTabin(Operacionet $mjeti): bool
+    {
+        if ($this->tabiMjetetPrezent === 'all') {
+            return true;
+        }
+
+        $statusi = $this->statusiSkadimit($mjeti);
+
+        return match ($this->tabiMjetetPrezent) {
+            'skaduar'   => $statusi['skaduar'],
+            'parapagim' => !$statusi['skaduar'] && $statusi['paguar'],
+            'pa_paguar' => !$statusi['skaduar'] && !$statusi['paguar'],
+            default     => true,
+        };
+    }
+
+    private function numroMjetetPrezentSipasStatusit($mjetet): array
+    {
+        $numrat = ['all' => $mjetet->count(), 'parapagim' => 0, 'pa_paguar' => 0, 'skaduar' => 0];
+
+        foreach ($mjetet as $mjeti) {
+            $statusi = $this->statusiSkadimit($mjeti);
+
+            if ($statusi['skaduar']) {
+                $numrat['skaduar']++;
+            } elseif ($statusi['paguar']) {
+                $numrat['parapagim']++;
+            } else {
+                $numrat['pa_paguar']++;
+            }
+        }
+
+        return $numrat;
+    }
+    public function updatedKerkoTarge()
+    {
+        $this->faqjaPrezent = 1;
+    }
+
+    public function updatedTabiMjetetPrezent()
+    {
+        $this->faqjaPrezent = 1;
+    }
+
+    public function faqjaTjeterPrezent()
+    {
+        $this->faqjaPrezent++;
+    }
+
+    public function faqjaMbrapaPrezent()
+    {
+        if ($this->faqjaPrezent > 1) {
+            $this->faqjaPrezent--;
+        }
+    }
 
     private function njesiPlotaTePaguara(Operacionet $mjeti, int $idKategoriaPlote): int
     {
@@ -1288,18 +1346,40 @@ class LiveKryejOperacionet extends Component
 
     public function render()
     {
-        // 1. Mjetet që janë aktualisht në parking (Kodi ekzistues)
-        $mjetePrezent = Operacionet::where('status', 'prezent')
+        $perFaqePrezent = 18;
+
+        // 1. Mjetet që janë aktualisht në parking — më i fundit i pari
+        $mjetePrezentQuery = Operacionet::where('status', 'prezent')
             ->with(['transaksioni.prenotimi', 'transaksioni.fashaOrare', 'transaksioni.monedha'])
+            ->orderByDesc('nisja');
 
-            ->when($this->kerkoTarge, function($query) {
-                $query->where('targa', 'like', '%' . strtoupper($this->kerkoTarge) . '%');
-            })
-            ->get();
+        if ($this->kerkoTarge) {
+            // NEW: kur kërkohet, s'ka faqe/limit dhe s'aplikohet filtri i tab-it — kërkon në TË GJITHA mjetet prezente
+            $mjetePrezent = (clone $mjetePrezentQuery)
+                ->where('targa', 'like', '%' . strtoupper($this->kerkoTarge) . '%')
+                ->get();
 
-        // 2. NEW: Logjika e filtrimit për mjetet e larguara (të shërbyera)
+            $numratTabeve = $this->numroMjetetPrezentSipasStatusit(
+                (clone $mjetePrezentQuery)->get()
+            );
+
+            $faqetPrezent = 1;
+        } else {
+            $tePagjitha = $mjetePrezentQuery->get();
+
+            $numratTabeve = $this->numroMjetetPrezentSipasStatusit($tePagjitha);
+
+            $teFiltruara = $tePagjitha->filter(fn($mjeti) => $this->perputhetMeTabin($mjeti))->values();
+
+            $faqetPrezent = max((int) ceil($teFiltruara->count() / $perFaqePrezent), 1);
+            $this->faqjaPrezent = min(max($this->faqjaPrezent, 1), $faqetPrezent);
+
+            $mjetePrezent = $teFiltruara->forPage($this->faqjaPrezent, $perFaqePrezent)->values();
+        }
+
+        // 2. Logjika e filtrimit për mjetet e larguara (të shërbyera) — e paprekur
         $queryLarguar = Operacionet::where('status', 'larguar')
-            ->with('transaksioni.fashaOrare') // E ngarkojmë për të parë vlerat/pagesat nëse duhen
+            ->with('transaksioni.fashaOrare')
             ->when($this->kerkoTarge, function($query) {
                 $query->where('targa', 'like', '%' . strtoupper($this->kerkoTarge) . '%');
             });
@@ -1311,13 +1391,12 @@ class LiveKryejOperacionet extends Component
         } elseif ($this->tabiAktiv === 'cakto_daten' && $this->dataSpecifike) {
             $queryLarguar->whereDate('ikja', $this->dataSpecifike);
         } else {
-            // Nëse zgjidhet cakto_daten por s'ka datë akoma, mos kthe asgjë ose kthe të sotmet
             $queryLarguar->whereDate('ikja', Carbon::today());
         }
 
         $mjeteLarguar = $queryLarguar->orderBy('ikja', 'desc')->get();
 
-        // 3. Fashat orare (Kodi ekzistues)
+        // 3. Fashat orare
         $fashatOrare = $this->modal_id_kategoria
             ? \App\Models\Admin\OretCmimi::where('id_kategoria_rezervimit', $this->modal_id_kategoria)
                 ->orderBy('nga')
@@ -1331,7 +1410,6 @@ class LiveKryejOperacionet extends Component
 
         $kategoriaEditAktuale = $this->edit_id_kategoria ? KategoriaPageses::find($this->edit_id_kategoria) : null;
 
-
         $kategoriaAktuale = $this->modal_id_kategoria ? KategoriaPageses::find($this->modal_id_kategoria) : null;
         $njesiaFashave = ($kategoriaAktuale && $kategoriaAktuale->eshteNjesiaDite()) ? __('ditë') : __('orë');
 
@@ -1339,7 +1417,9 @@ class LiveKryejOperacionet extends Component
             'kategorite'       => KategoriaPageses::all(),
             'monedhat'         => Monedhat::all(),
             'mjetePrezent'     => $mjetePrezent,
-            'mjeteLarguar'     => $mjeteLarguar, // PASSED TO VIEW
+            'numratTabeve'     => $numratTabeve,
+            'faqetPrezent'     => $faqetPrezent,
+            'mjeteLarguar'     => $mjeteLarguar,
             'fashatOrare'      => $fashatOrare,
             'njesiaFashave'    => $njesiaFashave,
             'kategoriaAktuale' => $kategoriaAktuale,
