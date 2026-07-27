@@ -180,12 +180,12 @@
 
                         {{-- SEKSIONI QENDROR: TARGA --}}
                         <div class="text-center py-2.5 my-1">
-                            <div class="d-inline-flex align-items-center justify-content-center bg-white border {{ $statusi['skaduar'] ? 'border-warning' : 'border-dark' }} border-2 rounded-2 w-100 shadow-sm"
-                                 style="height: 40px; cursor: pointer;"
+                            <div class="d-inline-flex align-items-center justify-content-center border {{ $statusi['skaduar'] ? 'border-warning' : '' }} border-2 rounded-2 w-100 shadow-sm"
+                                 style="height: 40px; cursor: pointer; background-color: #ffffff !important; {{ $statusi['skaduar'] ? '' : 'border-color: #212529 !important;' }}"
                                  wire:click="shfaqModalPagesen({{ $mjeti->id }})">
-                            <span class="fs-18 fw-bolder text-dark font-monospace text-uppercase" style="letter-spacing: 0.8px;">
-                                {{ $mjeti->targa }}
-                            </span>
+    <span class="fs-18 fw-bolder font-monospace text-uppercase" style="letter-spacing: 0.8px; color: #000000 !important;">
+        {{ $mjeti->targa }}
+    </span>
                             </div>
                         </div>
 
